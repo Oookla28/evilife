@@ -16,6 +16,9 @@ final class HealthKitSyncService: ObservableObject {
     private let store = HKHealthStore()
 
     @Published var isAuthorized = false
+    /// 是否已向系统请求过授权（iOS 26+ 读取授权状态受隐私保护，无法逐类查询，
+    /// 只能通过 getRequestStatusForAuthorization 得知是否已请求）。
+    @Published var accessRequested = false
     @Published var lastSyncAt: Date?
     @Published var lastAccepted = 0
     @Published var lastSkipped = 0
@@ -46,21 +49,54 @@ final class HealthKitSyncService: ObservableObject {
         HKHealthStore.isHealthDataAvailable()
     }
 
+    /// 供 iOS 26+ 的 .healthDataAccessRequest 修饰符使用。
+    var storeInstance: HKHealthStore { store }
+
+    /// 刷新授权状态：系统只在「是否已请求过」层面给出可靠信息。
+    func refreshAccessState() async {
+        let status = await requestStatus()
+        accessRequested = (status == .unnecessary)
+        isAuthorized = accessRequested
+    }
+
     func requestAccess() async throws {
         guard HKHealthStore.isHealthDataAvailable() else {
             throw NSError(domain: "EviLife.HealthKit", code: 1,
                           userInfo: [NSLocalizedDescriptionKey: "当前设备没有可用的健康数据。"])
         }
         try await store.requestAuthorization(toShare: [], read: readTypes)
-        isAuthorized = true
+        await refreshAccessState()
     }
 
+    private func requestStatus() async -> HKAuthorizationRequestStatus {
+        await withCheckedContinuation { continuation in
+            store.getRequestStatusForAuthorization(toShare: [], read: readTypes) { status, _ in
+                continuation.resume(returning: status)
+            }
+        }
+    }
+
+    private var readTypesByKind: [(String, HKObjectType)] {
+        [
+            ("steps", HKObjectType.quantityType(forIdentifier: .stepCount)!),
+            ("resting_heart_rate", HKObjectType.quantityType(forIdentifier: .restingHeartRate)!),
+            ("weight_kg", HKObjectType.quantityType(forIdentifier: .bodyMass)!),
+            ("sleep_minutes", HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!),
+        ]
+    }
+
+    /// 供 iOS 26+ 的 .healthDataAccessRequest 修饰符使用。
+    var healthReadTypes: Set<HKObjectType> { readTypes }
+
     /// 逐类核对授权状态，只查询用户允许的类型。
+    /// 注意：iOS 26+ 对「读取」授权状态做了隐私化，authorizationStatus 可能不反映
+    /// 读取授权；此处仅作尽力过滤（授权状态明确的类型直接放行，其余仍尝试查询）。
     private func authorizedTypes() async -> Set<HKObjectType> {
         var result: Set<HKObjectType> = []
         for type in readTypes {
             let status = store.authorizationStatus(for: type)
-            if status == .sharingAuthorized { result.insert(type) }
+            // sharingDenied 明确拒绝才排除；notDetermined 也可能只是系统未回报，仍尝试查询
+            if status != .sharingDenied { result.insert(type) }
         }
         return result
     }
@@ -71,6 +107,13 @@ final class HealthKitSyncService: ObservableObject {
         guard isHealthDataAvailable() else {
             throw NSError(domain: "EviLife.HealthKit", code: 1,
                           userInfo: [NSLocalizedDescriptionKey: "当前设备没有可用的健康数据。"])
+        }
+        if !accessRequested {
+            await refreshAccessState()
+        }
+        guard accessRequested else {
+            throw NSError(domain: "EviLife.HealthKit", code: 5,
+                          userInfo: [NSLocalizedDescriptionKey: "还没有请求健康数据授权，请先点击授权。"])
         }
         let allowed = await authorizedTypes()
         guard !allowed.isEmpty else {
@@ -134,7 +177,8 @@ final class HealthKitSyncService: ObservableObject {
         }
         guard !observations.isEmpty else {
             throw NSError(domain: "EviLife.HealthKit", code: 3,
-                          userInfo: [NSLocalizedDescriptionKey: "最近 \(days) 天没有可同步的健康数据。"])
+                          userInfo: [NSLocalizedDescriptionKey:
+                            "最近 \(days) 天没有可同步的健康数据。若已授权但查询为空，可能是读取被拒绝：请到 设置 → 健康 → 数据访问与设备 → EviLife 中检查，并确认 iPhone 健康里有手表同步的数据。"])
         }
         return Array(observations.prefix(500))
     }

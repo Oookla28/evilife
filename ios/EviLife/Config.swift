@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 enum AppConfig {
     /// 默认后端：本机 FastAPI。优先级：启动探测结果 > 应用内手动设置 >
@@ -6,13 +7,50 @@ enum AppConfig {
     /// 8000 被本机其他进程占用，开发默认用 8010。
     static let loopbackFallback = "http://127.0.0.1:8010"
 
+    /// 动态发现 CoreDevice USB 隧道：设备侧地址是 fdXX:…::1，Mac 侧是同前缀的 ::2。
+    /// 隧道前缀每次重连都会变，因此不能写死，必须运行时枚举自己的 utun 接口。
+    static func usbTunnelHostCandidates(port: Int = 8010) -> [String] {
+        var candidates: [String] = []
+        var ifaddrPtr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddrPtr) == 0, let first = ifaddrPtr else { return candidates }
+        defer { freeifaddrs(first) }
+        var cursor: UnsafeMutablePointer<ifaddrs>? = first
+        while let current = cursor {
+            cursor = current.pointee.ifa_next
+            guard let addr = current.pointee.ifa_addr,
+                  addr.pointee.sa_family == UInt8(AF_INET6),
+                  let namePtr = current.pointee.ifa_name else { continue }
+            let interface = String(cString: namePtr)
+            guard interface.hasPrefix("utun") else { continue }
+            var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            var storage = addr.pointee // sockaddr
+            let length = socklen_t(storage.sa_len)
+            let result = withUnsafePointer(to: &storage) { ptr in
+                getnameinfo(ptr, length, &hostname,
+                            socklen_t(hostname.count), nil, 0, NI_NUMERICHOST)
+            }
+            guard result == 0 else { continue }
+            let ip = String(cString: hostname)
+            guard ip.hasPrefix("fd") else { continue }
+            guard let lastColon = ip.lastIndex(of: ":") else { continue }
+            let host = "\(ip[..<lastColon])::2"
+            let candidate = "http://[\(host)]:\(port)"
+            // 自己以 ::1 结尾的接口大概率就是 CoreDevice 隧道，优先探测
+            if ip.hasSuffix("::1") {
+                candidates.insert(candidate, at: 0)
+            } else {
+                candidates.append(candidate)
+            }
+        }
+        return candidates
+    }
+
     /// 启动时按顺序探测，取第一个 /api/v1/health 返回 200 的地址：
-    /// 1. USB 隧道（真机有线直连 Mac，Mac 侧地址 fd2f:e300:f785::2）
+    /// 1. USB 隧道（动态发现，真机有线直连 Mac）
     /// 2. 局域网 Wi-Fi（Mac en0 地址）
     /// 3. 回环（模拟器）
     static var probeCandidates: [String] {
-        [
-            "http://[fd2f:e300:f785::2]:8010",
+        usbTunnelHostCandidates() + [
             "http://172.19.55.237:8010",
             loopbackFallback,
         ]

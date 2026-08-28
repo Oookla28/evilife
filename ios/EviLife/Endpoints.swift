@@ -130,6 +130,33 @@ enum API {
         _ = try await APIClient.shared.delete("/api/v1/observations/\(id)")
     }
 
+    static func observations(kind: String? = nil, limit: Int = 5000) async throws -> [ObservationRecord] {
+        var path = "/api/v1/observations?limit=\(limit)"
+        if let kind { path += "&kind=\(kind)" }
+        return try APIClient.decoder.decode(
+            [ObservationRecord].self,
+            from: try await APIClient.shared.get(path))
+    }
+
+    // MARK: Apple 健康 XML 导入（网页端迁移通道）
+
+    static func importAppleHealth(fileData: Data, fileName: String) async throws -> AppleHealthImportJob {
+        let data = try await APIClient.shared.postMultipart(
+            "/api/v1/health-imports/apple",
+            fields: [:],
+            fileField: "export",
+            fileName: fileName,
+            mimeType: "text/xml",
+            fileData: fileData)
+        return try APIClient.decoder.decode(AppleHealthImportJob.self, from: data)
+    }
+
+    static func getAppleHealthImport(_ jobId: String) async throws -> AppleHealthImportJob {
+        try APIClient.decoder.decode(
+            AppleHealthImportJob.self,
+            from: try await APIClient.shared.get("/api/v1/health-imports/apple/\(jobId)"))
+    }
+
     // MARK: Health connectors
 
     static func connectors() async throws -> [HealthConnector] {

@@ -247,6 +247,26 @@ struct ProfileAnalysisResponse: Codable {
     let cards: [ProfileAnalysisCard]
 }
 
+// MARK: - Apple 健康 XML 导入
+
+struct AppleHealthImportSummary: Codable {
+    let source_file: String
+    let processed_records: Int
+    let accepted: Int
+    let skipped: Int
+    let date_from: String?
+    let date_to: String?
+    let counts: [String: Int]
+}
+
+struct AppleHealthImportJob: Codable {
+    let id: String
+    let status: String // queued / running / completed / failed
+    let processed_records: Int
+    let summary: AppleHealthImportSummary?
+    let error: String?
+}
+
 // MARK: - Reports
 
 struct ReportItem: Codable, Identifiable {

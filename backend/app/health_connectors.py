@@ -46,6 +46,8 @@ class ConnectorIngestResponse(BaseModel):
 
 
 class PairingSession(BaseModel):
+    """扫码配对会话：网页端创建，手机端扫码后向 pairing_url 上传数据。"""
+
     id: str
     connector_id: ConnectorId
     token: str

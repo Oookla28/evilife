@@ -12,6 +12,12 @@ struct EviLifeApp: App {
                     await AppConfig.probe()
                     await appState.bootstrap()
                 }
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                    Task {
+                        await AppConfig.probe()
+                        await appState.bootstrap()
+                    }
+                }
         }
     }
 }

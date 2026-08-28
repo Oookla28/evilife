@@ -98,12 +98,15 @@ enum TransferLinkStore {
     }
 }
 
-/// 解析扫码内容：EviLife 配对 JSON / pairing_url JSON / URL 参数 / 原始配对码。
+/// 解析扫码内容：团队配对 JSON（pairing_url+token）/ 简易 pairing_url /
+/// EviLife 配对 JSON / URL 参数 / 原始配对码。
 struct PairingPayload {
     let code: String?
     let baseURL: String?
-    /// 网页端自定义格式：{"pairing_url": "http://host/api/v1/health-pairing/"}
+    /// 网页端格式：{"pairing_url": "…/complete", "token": "…", "connector_id": "…"}
     let pairingURL: String?
+    let token: String?
+    let connectorID: String?
 }
 
 enum PairingParser {
@@ -111,7 +114,7 @@ enum PairingParser {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
-        // 0. JSON 携带 pairing_url：{"pairing_url":"http://…/health-pairing/"}
+        // 0. JSON：团队协议 {"pairing_url":"…","token":"…","connector_id":"…"}
         if let data = trimmed.data(using: .utf8),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let pairingURL = json["pairing_url"] as? String,
@@ -119,7 +122,9 @@ enum PairingParser {
             return PairingPayload(
                 code: nil,
                 baseURL: nil,
-                pairingURL: pairingURL.trimmingCharacters(in: .whitespacesAndNewlines))
+                pairingURL: pairingURL.trimmingCharacters(in: .whitespacesAndNewlines),
+                token: (json["token"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                connectorID: (json["connector_id"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines))
         }
 
         // 1. JSON：{"type":"evilife-pairing","base_url":"…","code":"ABC123"}
@@ -131,7 +136,7 @@ enum PairingParser {
                 return PairingPayload(
                     code: code,
                     baseURL: (json["base_url"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                    pairingURL: nil)
+                    pairingURL: nil, token: nil, connectorID: nil)
             }
         }
 
@@ -141,7 +146,7 @@ enum PairingParser {
            let rawCode = components.queryItems?.first(where: { $0.name == "code" })?.value {
             let code = normalize(rawCode)
             if !code.isEmpty {
-                return PairingPayload(code: code, baseURL: baseOf(components), pairingURL: nil)
+                return PairingPayload(code: code, baseURL: baseOf(components), pairingURL: nil, token: nil, connectorID: nil)
             }
         }
 
@@ -154,14 +159,14 @@ enum PairingParser {
                     base = "\(scheme)://\(host)"
                     if let port = url.port { base! += ":\(port)" }
                 }
-                return PairingPayload(code: last, baseURL: base, pairingURL: nil)
+                return PairingPayload(code: last, baseURL: base, pairingURL: nil, token: nil, connectorID: nil)
             }
         }
 
         // 4. 原始配对码（4–16 位字母数字）
         let cleaned = normalize(trimmed)
         if (4...16).contains(cleaned.count) {
-            return PairingPayload(code: cleaned, baseURL: nil, pairingURL: nil)
+            return PairingPayload(code: cleaned, baseURL: nil, pairingURL: nil, token: nil, connectorID: nil)
         }
         return nil
     }
@@ -274,5 +279,42 @@ enum WebSyncClient {
         }
         let reply = try JSONDecoder().decode(Reply.self, from: data)
         return (reply.accepted ?? 0, reply.total ?? reply.accepted ?? 0)
+    }
+
+    /// 团队协议：扫码得到 pairing_url + token，直接把数据 POST 到 pairing_url 完成配对。
+    static func completePairing(
+        pairingURL: String,
+        token: String,
+        connectorID: String,
+        observations: [ConnectorObservation]
+    ) async throws -> (accepted: Int, skipped: Int) {
+        struct Body: Encodable {
+            let token: String
+            let consent_receipt: String
+            let observations: [ConnectorObservation]
+        }
+        let body = Body(
+            token: token,
+            consent_receipt: "healthkit-pairing-\(UUID().uuidString)",
+            observations: observations)
+
+        var request = URLRequest(url: URL(string: pairingURL)!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(body)
+        request.timeoutInterval = 60
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw APIRequestError.http(
+                (response as? HTTPURLResponse)?.statusCode ?? -1,
+                APIClient.errorDetail(from: data) ?? "配对上传失败")
+        }
+        struct Reply: Decodable {
+            let accepted: Int?
+            let skipped: Int?
+        }
+        let reply = try JSONDecoder().decode(Reply.self, from: data)
+        return (reply.accepted ?? 0, reply.skipped ?? 0)
     }
 }
