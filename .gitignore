@@ -53,3 +53,9 @@ test-results/
 /eval/reports/baseline_*.json
 /projects/
 
+
+# iOS / Xcode
+ios/DerivedData/
+ios/build/
+xcuserdata/
+*.xcuserstate

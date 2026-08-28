@@ -204,3 +204,17 @@ D:\Python\EviLife-Backend\.venv\Scripts\python.exe -m pytest backend\tests
 ## 部署
 
 项目包含 GitHub Actions、后端 Dockerfile 与 Render Blueprint。完整步骤见 [DEPLOYMENT.md](./DEPLOYMENT.md)。SQLite 部署必须挂载持久卷并保持单实例；需要横向扩展时迁移到 PostgreSQL。
+
+## iOS 原生应用
+
+`ios/` 是完整的 SwiftUI 原生 iPhone 应用（iOS 17+，Xcode 16+ 文件夹同步组工程）：
+
+- **循证问答**：`POST /orchestrate` + SSE 事件流，渲染 EvidenceAnswer / Verdict（是/部分正确/否/证据不足）/ 引用 / 安全卡 / 澄清卡 / 餐食识别 / 健康记录草稿等模块；
+- **今日 / 健康 / 报告 / 历史 / 设置**：禁食计时、快速记录、体检报告分析、云端历史、账号登录；
+- **HealthKit 同步桥**：逐类授权 → 只读已授权类型 → 聚合上传 `/api/v1/health-connectors/apple_healthkit/ingest`；
+- **直连大模型 API**：OpenAI 兼容接口（模型/推理强度可切、Key 存钥匙串、可桥接独立视觉模型做餐食识别）；
+- **扫码配对网页端**：原生扫 QR（JSON `code` / `pairing_url` / URL / 纯码四种格式），
+  `POST /api/v1/device-pairing/create|claim` 绑定同一账号；`mode=transfer` 支持跨账号传输；
+  网页端二维码页见 `public/pairing-qr.html`。
+
+运行方式见 `ios/README.md`。真机需要 Signing & Capabilities 配置 HealthKit 与签名团队。

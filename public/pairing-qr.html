@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EviLife 设备配对</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, "PingFang SC", sans-serif;
+           background: #f4f7f6; color: #1d2733; display: flex;
+           min-height: 100vh; align-items: center; justify-content: center; }
+    .card { background: #fff; border-radius: 24px; padding: 32px;
+            box-shadow: 0 18px 55px rgba(55,91,142,.10); width: 320px; text-align: center; }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    p { font-size: 13px; color: #6a7785; margin: 4px 0; }
+    #qrcode { display: inline-block; margin: 20px 0; padding: 12px; background: #fff; }
+    .code { font-size: 30px; font-weight: 700; letter-spacing: 8px; color: #1d9c8b; }
+    .hint { font-size: 12px; color: #96a2ad; }
+    button { margin-top: 18px; border: 0; border-radius: 12px; padding: 10px 20px;
+             background: #21a38f; color: #fff; font-size: 14px; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: wait; }
+    .error { color: #c64f46; font-size: 13px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>EviLife 设备配对</h1>
+    <p>用 iPhone 上的 EviLife App：健康 → 扫码绑定网页端</p>
+    <div id="qrcode"></div>
+    <div class="code" id="code">······</div>
+    <p class="hint" id="countdown">配对码 5 分钟内有效</p>
+    <button id="refresh" onclick="load()">重新生成</button>
+    <p class="error" id="error"></p>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script>
+    // 后端基址：同源部署时留空；跨域部署时改成后端地址并确认 CORS 允许当前来源。
+    const API_BASE = "";
+    let timer = null;
+    let qr = null;
+
+    function api(path, opts = {}) {
+      return fetch(API_BASE + path, { credentials: "include", ...opts });
+    }
+
+    async function load() {
+      const err = document.getElementById("error");
+      const btn = document.getElementById("refresh");
+      err.textContent = "";
+      btn.disabled = true;
+      try {
+        const res = await api("/api/v1/device-pairing/create", { method: "POST" });
+        if (!res.ok) {
+          if (res.status === 401) { err.textContent = "请先登录 EviLife 网页端再生成配对码。"; return; }
+          err.textContent = "生成失败：HTTP " + res.status;
+          return;
+        }
+        const data = await res.json();
+        document.getElementById("code").textContent = data.code;
+        const payload = JSON.stringify({
+          type: "evilife-pairing",
+          base_url: API_BASE || window.location.origin,
+          code: data.code,
+        });
+        if (qr) qr.clear(); else qr = new QRCode(document.getElementById("qrcode"), { width: 220, height: 220 });
+        qr.makeCode(payload);
+        let left = Math.max(1, Math.round(data.expires_in));
+        const cd = document.getElementById("countdown");
+        cd.textContent = "配对码 " + left + " 秒后过期";
+        clearInterval(timer);
+        timer = setInterval(() => {
+          left -= 1;
+          cd.textContent = "配对码 " + left + " 秒后过期";
+          if (left <= 0) { clearInterval(timer); cd.textContent = "配对码已过期，请重新生成"; }
+        }, 1000);
+      } catch (e) {
+        err.textContent = "网络错误：" + e.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    load();
+  </script>
+</body>
+</html>

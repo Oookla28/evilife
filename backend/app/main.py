@@ -4,8 +4,8 @@ import asyncio
 import hashlib
 import json
 import os
-import tempfile
 import secrets
+import tempfile
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -16,6 +16,7 @@ from uuid import uuid4
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
 
 from .auth import (
     SESSION_COOKIE,
@@ -57,8 +58,7 @@ from .health_connectors import (
     ConnectorId,
     ConnectorIngestRequest,
     ConnectorIngestResponse,
-    PairingCompleteRequest,
-    PairingSession,
+    ConnectorObservation,
     HealthConnector,
     get_connector,
 )
@@ -121,9 +121,6 @@ _run_owners: dict[str, str] = {}
 _apple_import_jobs: dict[str, AppleHealthImportJob] = {}
 _apple_import_owners: dict[str, str] = {}
 _apple_import_lock = Lock()
-_pairing_sessions: dict[str, PairingSession] = {}
-_pairing_owners: dict[str, str] = {}
-_pairing_lock = Lock()
 MAX_APPLE_EXPORT_BYTES = 1024 * 1024 * 1024
 
 _runtime_repository = lifestyle_store.repository
@@ -230,6 +227,142 @@ def current_account(
         email=principal.email or "",
         display_name=principal.display_name,
         subject_id=principal.subject_id,
+    )
+
+
+# --- 设备配对（二维码）：网页端生成一次性配对码，iOS 扫码绑定同一账号 ----------
+# 流程：网页端（已登录）POST /device-pairing/create 拿到 6 位码并渲染二维码；
+# iOS 扫码后 POST /device-pairing/claim，服务端给手机签发该用户的会话 cookie，
+# 之后手机 HealthKit（含 Apple Watch 数据）ingest 写入同一 subject_id，
+# 网页端即可看到同步的健康数据。
+
+_device_pairings: dict[str, dict] = {}
+_device_pairing_codes: dict[str, str] = {}
+PAIRING_TTL_SECONDS = 300
+
+
+def _purge_device_pairings() -> None:
+    now = datetime.now(timezone.utc)
+    expired = [
+        pairing_id
+        for pairing_id, pairing in _device_pairings.items()
+        if pairing["expires_at"] < now
+    ]
+    for pairing_id in expired:
+        code = _device_pairings.pop(pairing_id, {}).get("code")
+        if code:
+            _device_pairing_codes.pop(code, None)
+
+
+@app.post("/api/v1/device-pairing/create")
+def create_device_pairing(
+    principal: Principal = Depends(_registered_principal),
+) -> dict:
+    _purge_device_pairings()
+    assert principal.user_id is not None
+    code = "".join(
+        secrets.choice("ABCDEFGHJKLMNPQRSTUVWXYZ23456789") for _ in range(6)
+    )
+    pairing_id = f"pair-{uuid4().hex[:12]}"
+    _device_pairings[pairing_id] = {
+        "user_id": principal.user_id,
+        "email": principal.email or "",
+        "display_name": principal.display_name,
+        "subject_id": principal.subject_id,
+        "code": code,
+        "expires_at": datetime.now(timezone.utc) + timedelta(seconds=PAIRING_TTL_SECONDS),
+    }
+    _device_pairing_codes[code] = pairing_id
+    return {"pairing_id": pairing_id, "code": code, "expires_in": PAIRING_TTL_SECONDS}
+
+
+class DevicePairingClaim(BaseModel):
+    code: str = Field(min_length=4, max_length=16)
+    # login：手机登录为该账号（默认，subject 相同 → 后续同步即对方账号）
+    # transfer：手机保持当前登录，返回一次性传输令牌，把数据批量写入对方账号
+    mode: Literal["login", "transfer"] = "login"
+
+
+_transfer_tokens: dict[str, dict] = {}
+TRANSFER_TOKEN_TTL_SECONDS = 24 * 3600
+
+
+@app.post("/api/v1/device-pairing/claim")
+def claim_device_pairing(
+    payload: DevicePairingClaim,
+    request: Request,
+    response: Response,
+) -> dict:
+    code = payload.code.strip().upper()
+    pairing_id = _device_pairing_codes.pop(code, None)
+    if pairing_id is None:
+        raise HTTPException(status_code=404, detail="配对码无效或已过期")
+    pairing = _device_pairings.pop(pairing_id, None)
+    if pairing is None or pairing["expires_at"] < datetime.now(timezone.utc):
+        raise HTTPException(status_code=404, detail="配对码无效或已过期")
+
+    target_user = PublicUser(
+        id=pairing["user_id"],
+        email=pairing["email"],
+        display_name=pairing["display_name"],
+        subject_id=pairing["subject_id"],
+    )
+
+    if payload.mode == "transfer":
+        token = secrets.token_urlsafe(24)
+        _transfer_tokens[token] = {
+            "user_id": pairing["user_id"],
+            "subject_id": pairing["subject_id"],
+            "email": pairing["email"],
+            "display_name": pairing["display_name"],
+            "expires_at": datetime.now(timezone.utc) + timedelta(seconds=TRANSFER_TOKEN_TTL_SECONDS),
+        }
+        return {
+            "mode": "transfer",
+            "transfer_token": token,
+            "expires_in": TRANSFER_TOKEN_TTL_SECONDS,
+            "target": target_user.model_dump(mode="json"),
+        }
+
+    token, expires_at = _auth_service.issue_session(
+        pairing["user_id"],
+        user_agent=request.headers.get("user-agent"),
+    )
+    set_session_cookie(response, token, expires_at)
+    return {"mode": "login", "user": target_user.model_dump(mode="json")}
+
+
+class DevicePairingTransfer(BaseModel):
+    transfer_token: str = Field(min_length=8, max_length=128)
+    consent_receipt: str = Field(min_length=8, max_length=240)
+    observations: list[ConnectorObservation] = Field(min_length=1, max_length=500)
+
+
+@app.post(
+    "/api/v1/device-pairing/transfer-data",
+    response_model=ConnectorIngestResponse,
+)
+def transfer_device_data(payload: DevicePairingTransfer) -> ConnectorIngestResponse:
+    """把手机端数据写入扫码目标账号（跨账号传输，保留手机自身登录态）。"""
+    link = _transfer_tokens.get(payload.transfer_token.strip())
+    if link is None or link["expires_at"] < datetime.now(timezone.utc):
+        raise HTTPException(status_code=404, detail="传输令牌无效或已过期")
+    records: list[ObservationRecord] = []
+    accepted = 0
+    for item in payload.observations:
+        record, created = lifestyle_store.add_device_observation(
+            item.observation,
+            connector_id="apple_healthkit",
+            external_id=item.external_id,
+            subject_id=link["subject_id"],
+        )
+        records.append(record)
+        accepted += int(created)
+    return ConnectorIngestResponse(
+        connector_id="apple_healthkit",
+        accepted=accepted,
+        skipped=len(records) - accepted,
+        records=records,
     )
 
 
@@ -387,81 +520,6 @@ def delete_observation(
 @app.get("/api/v1/health-connectors", response_model=list[HealthConnector])
 def list_health_connectors() -> list[HealthConnector]:
     return CONNECTORS
-
-
-@app.post("/api/v1/health-pairing", response_model=PairingSession)
-def create_health_pairing(
-    connector_id: ConnectorId,
-    request: Request,
-    principal: Principal = Depends(_principal),
-) -> PairingSession:
-    connector = get_connector(connector_id)
-    if connector is None:
-        raise HTTPException(status_code=404, detail="connector not found")
-    pairing_id = f"pair-{secrets.token_urlsafe(12)}"
-    token = secrets.token_urlsafe(32)
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
-    origin = str(request.base_url).rstrip("/")
-    session = PairingSession(
-        id=pairing_id,
-        connector_id=connector_id,
-        token=token,
-        pairing_url=f"{origin}/api/v1/health-pairing/{pairing_id}/complete",
-        expires_at=expires_at,
-    )
-    with _pairing_lock:
-        _pairing_sessions[pairing_id] = session
-        _pairing_owners[pairing_id] = principal.subject_id
-    return session
-
-
-@app.get("/api/v1/health-pairing/{pairing_id}", response_model=PairingSession)
-def get_health_pairing(
-    pairing_id: str,
-    principal: Principal = Depends(_principal),
-) -> PairingSession:
-    with _pairing_lock:
-        session = _pairing_sessions.get(pairing_id)
-        if session is None or _pairing_owners.get(pairing_id) != principal.subject_id:
-            raise HTTPException(status_code=404, detail="pairing session not found")
-        if session.status == "pending" and session.expires_at <= datetime.now(timezone.utc):
-            session = session.model_copy(update={"status": "expired"})
-            _pairing_sessions[pairing_id] = session
-        return session
-
-
-@app.post("/api/v1/health-pairing/{pairing_id}/complete", response_model=ConnectorIngestResponse)
-def complete_health_pairing(
-    pairing_id: str,
-    payload: PairingCompleteRequest,
-) -> ConnectorIngestResponse:
-    with _pairing_lock:
-        session = _pairing_sessions.get(pairing_id)
-        if session is None or session.token != payload.token:
-            raise HTTPException(status_code=404, detail="pairing session not found")
-        if session.status != "pending" or session.expires_at <= datetime.now(timezone.utc):
-            raise HTTPException(status_code=410, detail="pairing session expired")
-        _pairing_sessions[pairing_id] = session.model_copy(update={"status": "paired"})
-        subject_id = _pairing_owners[pairing_id]
-    connector = get_connector(session.connector_id)
-    assert connector is not None
-    records: list[ObservationRecord] = []
-    accepted = 0
-    for item in payload.observations:
-        record, created = lifestyle_store.add_device_observation(
-            item.observation,
-            connector_id=session.connector_id,
-            external_id=item.external_id,
-            subject_id=subject_id,
-        )
-        records.append(record)
-        accepted += int(created)
-    return ConnectorIngestResponse(
-        connector_id=session.connector_id,
-        accepted=accepted,
-        skipped=len(records) - accepted,
-        records=records,
-    )
 
 
 def _run_apple_health_import(
