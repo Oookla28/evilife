@@ -69,6 +69,13 @@ class PublicUser(BaseModel):
     subject_id: str
 
 
+class AccountSummary(BaseModel):
+    user: PublicUser
+    total_accounts: int
+    registered_at: str | None = None
+    last_login_at: str | None = None
+
+
 class ConversationMessage(BaseModel):
     id: str = Field(min_length=1, max_length=120)
     role: Literal["user", "assistant"]

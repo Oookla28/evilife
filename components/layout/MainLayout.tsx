@@ -11,6 +11,7 @@ export function MainLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { user, loading } = useAuth();
   const isLogin = pathname === "/login";
+  const isAdmin = pathname.startsWith("/admin");
 
   useEffect(() => {
     if (!loading && !user && !isLogin) router.replace("/login");
@@ -26,6 +27,8 @@ export function MainLayout({ children }: { children: ReactNode }) {
       </div>
     );
   }
+
+  if (isAdmin) return <div className="min-h-screen bg-bg-page">{children}</div>;
 
   return (
     <div className="app-shell">

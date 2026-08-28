@@ -94,6 +94,10 @@ class RuntimeRepository:
             row = connection.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
         return dict(row) if row is not None else None
 
+    def count_users(self) -> int:
+        with connect(self.path) as connection:
+            return int(connection.execute("SELECT COUNT(*) FROM users").fetchone()[0])
+
     def update_password_hash(self, user_id: str, password_hash: str) -> None:
         with transaction(self.path) as connection:
             connection.execute(

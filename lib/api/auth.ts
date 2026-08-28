@@ -7,6 +7,13 @@ export interface AuthUser {
   subject_id: string;
 }
 
+export interface AccountSummary {
+  user: AuthUser;
+  total_accounts: number;
+  registered_at: string | null;
+  last_login_at: string | null;
+}
+
 export interface RegisterInput {
   email: string;
   password: string;
@@ -19,6 +26,7 @@ export interface LoginInput {
 }
 
 export const getCurrentUser = () => apiClient<AuthUser>("/api/v1/auth/me");
+export const getAccountSummary = () => apiClient<AccountSummary>("/api/v1/account/summary");
 
 export const login = (input: LoginInput) =>
   apiClient<AuthUser>("/api/v1/auth/login", {
