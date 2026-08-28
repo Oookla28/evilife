@@ -1,0 +1,1 @@
+<resources><style name="Theme.EviLife" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:colorAccent">#0F766E</item></style></resources>
