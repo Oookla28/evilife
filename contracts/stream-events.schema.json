@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "stream-events.schema.json",
+  "title": "EviLife Stream Event",
+  "type": "object",
+  "required": ["event_id", "request_id", "run_id", "type", "timestamp"],
+  "properties": {
+    "event_id": {"type": "string", "minLength": 1},
+    "request_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "type": {
+      "enum": [
+        "run.started",
+        "route.selected",
+        "evidence.snapshot",
+        "answer.delta",
+        "module.ready",
+        "gate.completed",
+        "action.required",
+        "run.completed",
+        "run.failed",
+        "heartbeat"
+      ]
+    },
+    "timestamp": {"type": "string", "format": "date-time"},
+    "payload": {"type": "object"}
+  },
+  "additionalProperties": false
+}

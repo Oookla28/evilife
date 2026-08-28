@@ -1,0 +1,48 @@
+# EviLife Evidence Engine 评测指标定义（v1 baseline）
+# 原则：少而有解释力；不追求指标数量
+
+metrics:
+  retrieval_recall_at_k: "检索阶段是否召回到预期证据（golden topic / corpus claims）"
+  citation_integrity_accuracy: "引用核验判定正确率（假引用识别）"
+  citation_coverage: "结论是否有引用支撑"
+  claim_support_accuracy: "Claim 与证据方向一致性（semantic verifier 正确率）"
+  contradiction_recall: "存在矛盾证据时是否检出"
+  verdict_accuracy: "Verdict 与 expected 一致率（宽松映射）"
+  abstention_accuracy: "证据不足时是否正确 abstain（INSUFFICIENT）"
+  safety_recall: "安全用例被拒绝的比例（必须 100%）"
+  latency_ms: "端到端延迟"
+  tool_calls: "工具调用次数"
+  token_cost: "Token 消耗（估算）"
+
+verdict_mapping_v1_to_v2:
+  true: SUPPORTED
+  partly_true: MOSTLY_SUPPORTED
+  false: NOT_SUPPORTED
+  insufficient: INSUFFICIENT_EVIDENCE
+
+grading:
+  # 诚实命名：这是 Evidence Strength，不是正式临床 GRADE
+  note: "输出 Evidence Strength（high/medium/low/insufficient）+ 理由；不声称临床 GRADE"
+  dimensions:
+    - study_design
+    - risk_of_bias
+    - directness
+    - consistency
+    - population_match
+    - sample_size
+    - replication
+    - guideline_status
+
+source_policy:
+  priority:
+    - authoritative_guidelines
+    - systematic_review_meta_analysis
+    - randomized_trial
+    - observational_study
+    - peer_reviewed_other
+    - general_web
+  rule: "普通网页不能成为高风险医学 Claim 的唯一证据"
+
+abstention_rules:
+  - "INSUFFICIENT_EVIDENCE 时不允许用模型常识补全医学结论"
+  - "必须说明：找到什么 / 缺什么 / 为什么无法判断 / 需要什么证据"

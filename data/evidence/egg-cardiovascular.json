@@ -1,0 +1,48 @@
+{
+  "packet_id": "packet-egg-cardiovascular-v1",
+  "topic": "egg_consumption_and_cardiovascular_risk",
+  "question": "鸡蛋摄入与心血管风险有什么证据？",
+  "overall_direction": "mixed",
+  "evidence_strength": "medium",
+  "conflict_detected": true,
+  "evidence_items": [
+    {
+      "evidence_id": "E1",
+      "source_id": "PMID_39934049",
+      "title": "鸡蛋摄入与健康结局：系统综述和荟萃分析的更新伞形综述",
+      "year": 2025,
+      "source_type": "伞形综述",
+      "organization": "Nutrition, Metabolism and Cardiovascular Diseases",
+      "population": "观察性研究与干预研究所覆盖的一般人群。",
+      "intervention": "较高与较低鸡蛋摄入比较。",
+      "outcome": "心血管结局、死亡和血脂。",
+      "direction": "mixed",
+      "finding": "综述未发现高、低鸡蛋摄入与总体心血管结局或全因死亡的明确关联，但部分血脂和心衰信号存在，且总体证据强度很弱。",
+      "limitations": "纳入综述异质性高，整体质量被评为极低，不能把无明确关联解释为对每个人都绝对安全。",
+      "supports": ["现有证据不足以把适量鸡蛋本身认定为普遍的心血管危险因素。"],
+      "does_not_support": ["不能据此认为鸡蛋摄入量对任何人都没有限制。"],
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39934049/"
+    },
+    {
+      "evidence_id": "E2",
+      "source_id": "PMID_35524693",
+      "title": "鸡蛋摄入与全因及心血管死亡风险的系统综述和剂量反应荟萃分析",
+      "year": 2022,
+      "source_type": "观察性研究系统综述与荟萃分析",
+      "organization": "The Journal of Nutrition",
+      "population": "24篇文章、约1189万人，包含不同地区和年龄亚组。",
+      "intervention": "不同鸡蛋摄入量。",
+      "outcome": "全因、心血管、缺血性心脏病和卒中死亡。",
+      "direction": "mixed",
+      "finding": "总体结果受地区、年龄、性别和随访时间影响；部分亚组出现心血管死亡风险升高，而缺血性心脏病和卒中死亡未见显著关联。",
+      "limitations": "证据主要来自观察性研究，存在残余混杂，亚组发现不能直接用于个人因果判断。",
+      "supports": ["鸡蛋与心血管风险的关系具有明显人群差异，不能用单一是非结论概括。"],
+      "does_not_support": ["部分亚组提示高摄入可能不利，不能断言高鸡蛋摄入对所有人都安全。"],
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35524693/"
+    }
+  ],
+  "safe_actions": ["把鸡蛋放在整体饮食、总能量、饱和脂肪和个人血脂情况中评估。", "已有血脂异常或心血管疾病时按医生和营养师建议调整。"],
+  "unsafe_actions": ["不要仅凭单一食物判断个人心血管风险。", "不要用鸡蛋替代处方治疗或复查。"],
+  "missing_evidence": ["仍需要更高质量干预研究解释地区和高风险人群差异。"],
+  "evidence_version": "2026-08-12"
+}

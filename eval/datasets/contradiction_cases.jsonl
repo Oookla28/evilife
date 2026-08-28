@@ -1,0 +1,5 @@
+{"id": "C001", "claim": "16:8 比普通限热量更能减重", "expected": "MIXED_EVIDENCE", "for_evidence": "TRE-SR 部分研究有额外获益", "against_evidence": "TRE-NEJM 无显著组间差异"}
+{"id": "C002", "claim": "鸡蛋增加心血管风险", "expected": "MIXED_EVIDENCE", "for_evidence": "部分队列研究", "against_evidence": "多数前瞻性研究无显著关联"}
+{"id": "C003", "claim": "咖啡升高血压", "expected": "CONTEXT_DEPENDENT", "for_evidence": "急性摄入升压", "against_evidence": "长期习惯性摄入与风险负相关"}
+{"id": "C004", "claim": "低碳优于低脂", "expected": "MIXED_EVIDENCE", "for_evidence": "短期减重更快", "against_evidence": "12 个月后无显著差异"}
+{"id": "C005", "claim": "所有人都应该严格限盐", "expected": "CONTEXT_DEPENDENT", "for_evidence": "群体降压证据强", "against_evidence": "J 形曲线、个体差异"}

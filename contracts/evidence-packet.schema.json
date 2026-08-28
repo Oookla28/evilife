@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "evidence-packet.schema.json",
+  "title": "EviLife Evidence Packet",
+  "type": "object",
+  "required": [
+    "packet_id",
+    "topic",
+    "overall_direction",
+    "evidence_strength",
+    "conflict_detected",
+    "evidence_items",
+    "safe_actions",
+    "unsafe_actions",
+    "evidence_version"
+  ],
+  "properties": {
+    "packet_id": {"type": "string", "minLength": 1},
+    "topic": {"type": "string", "minLength": 1},
+    "question": {"type": "string"},
+    "overall_direction": {"enum": ["support", "mixed", "insufficient", "against"]},
+    "evidence_strength": {"enum": ["high", "medium", "low", "insufficient"]},
+    "conflict_detected": {"type": "boolean"},
+    "evidence_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "source_id",
+          "title",
+          "source_type",
+          "population",
+          "finding",
+          "limitations",
+          "supports",
+          "does_not_support",
+          "url"
+        ],
+        "properties": {
+          "evidence_id": {"type": "string"},
+          "source_id": {"type": "string"},
+          "title": {"type": "string"},
+          "year": {"type": "integer"},
+          "source_type": {"type": "string"},
+          "organization": {"type": "string"},
+          "population": {"type": "string", "minLength": 1},
+          "intervention": {"type": "string"},
+          "outcome": {"type": "string"},
+          "direction": {"type": "string"},
+          "finding": {"type": "string"},
+          "limitations": {"type": "string", "minLength": 1},
+          "supports": {"type": "array", "items": {"type": "string"}},
+          "does_not_support": {"type": "array", "items": {"type": "string"}},
+          "url": {"type": "string", "format": "uri"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "safe_actions": {"type": "array", "items": {"type": "string"}},
+    "unsafe_actions": {"type": "array", "items": {"type": "string"}},
+    "missing_evidence": {"type": "array", "items": {"type": "string"}},
+    "evidence_version": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false
+}

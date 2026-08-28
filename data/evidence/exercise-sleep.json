@@ -1,0 +1,31 @@
+{
+  "packet_id": "packet-exercise-sleep-v1",
+  "topic": "exercise_and_sleep_quality",
+  "question": "规律运动能否改善睡眠质量？",
+  "overall_direction": "support",
+  "evidence_strength": "medium",
+  "conflict_detected": false,
+  "evidence_items": [
+    {
+      "evidence_id": "E1",
+      "source_id": "PMID_39706783",
+      "title": "运动对成年女性睡眠质量影响的系统综述与荟萃分析",
+      "year": 2025,
+      "source_type": "系统综述与荟萃分析",
+      "organization": "Journal of Science and Medicine in Sport",
+      "population": "纳入研究中的成年女性。",
+      "intervention": "结构化运动训练。",
+      "outcome": "匹兹堡睡眠质量指数所评估的睡眠质量。",
+      "direction": "support",
+      "finding": "荟萃分析显示运动训练可改善成年女性的主观睡眠质量，但最佳运动类型、强度和时间仍需更多研究。",
+      "limitations": "证据主要针对成年女性，不能直接外推到所有年龄、疾病人群和所有运动方案。",
+      "supports": ["规律运动可作为改善部分成年人睡眠质量的非药物措施之一。"],
+      "does_not_support": ["不能保证运动解决所有失眠，也不能替代对持续失眠或睡眠呼吸暂停的评估。"],
+      "url": "https://pubmed.ncbi.nlm.nih.gov/39706783/"
+    }
+  ],
+  "safe_actions": ["从可承受的规律活动开始，同时保持固定作息和睡眠环境。", "记录运动时间、强度与当晚睡眠，寻找个人适合的安排。"],
+  "unsafe_actions": ["不要在胸痛、晕厥或急性疾病状态下强行运动。", "持续严重失眠、打鼾憋醒或白天嗜睡应寻求专业评估。"],
+  "missing_evidence": ["不同人群的最佳运动剂量和临睡前运动时间仍不确定。"],
+  "evidence_version": "2026-08-12"
+}

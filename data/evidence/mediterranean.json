@@ -1,0 +1,73 @@
+{
+  "packet_id": "packet-mediterranean-cardiovascular-v1",
+  "topic": "mediterranean_diet_and_cardiovascular_risk",
+  "question": "地中海饮食对心血管风险有什么证据？",
+  "overall_direction": "support",
+  "evidence_strength": "medium",
+  "conflict_detected": false,
+  "evidence_items": [
+    {
+      "evidence_id": "E1",
+      "source_id": "PREDIMED_NEJM_2018_PMID_29897866",
+      "title": "补充特级初榨橄榄油或坚果的地中海饮食用于心血管疾病一级预防",
+      "year": 2018,
+      "source_type": "随机对照试验再分析",
+      "organization": "PREDIMED 研究团队；《新英格兰医学杂志》",
+      "population": "西班牙心血管高风险、但入组时尚未确诊心血管疾病的成年人。",
+      "intervention": "补充特级初榨橄榄油或坚果的地中海饮食，与低脂饮食建议进行比较。",
+      "outcome": "包括心肌梗死、卒中或心血管死亡在内的主要心血管复合事件。",
+      "direction": "support",
+      "finding": "重新分析后的试验显示，地中海饮食组发生主要心血管事件的人数少于接受低脂饮食建议的对照组。",
+      "limitations": "原始报告因部分研究中心的随机分组不规范而撤稿并重新发表；研究对象是西班牙高风险成年人，且试验提供了补充食品，因此结论的外推范围有限。",
+      "supports": [
+        "补充特级初榨橄榄油或坚果的地中海饮食模式，可能减少高风险成年人的主要心血管事件。",
+        "这项证据来自西班牙的心血管一级预防人群。"
+      ],
+      "does_not_support": [
+        "不能据此认为每个人都会获得相同程度的益处。",
+        "不能据此认为单一地中海食物或补充剂就能预防心血管疾病。",
+        "该试验不能证明低风险人群或所有文化饮食环境中都有相同效果。"
+      ],
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29897866/"
+    },
+    {
+      "evidence_id": "E2",
+      "source_id": "COCHRANE_CD009825_2019",
+      "title": "地中海式饮食用于心血管疾病的一级和二级预防",
+      "year": 2019,
+      "source_type": "系统综述",
+      "organization": "考克兰心脏病组",
+      "population": "30 项随机试验中的健康成年人、心血管风险升高者及已确诊心血管疾病者。",
+      "intervention": "给予地中海式饮食建议、提供相关食物或两者并用，并与最小干预、常规照护或其他饮食比较。",
+      "outcome": "心血管事件、死亡率、血压以及血脂风险因素。",
+      "direction": "support_with_uncertainty",
+      "finding": "综述发现了一些有希望但尚不确定的证据：部分一级预防风险因素和卒中结局有所改善，但许多临床终点的证据确定性仍然有限。",
+      "limitations": "各试验的人群和干预差异较大，报告临床事件的研究较少，证据质量多为低到中等，二级预防证据也较为有限。",
+      "supports": [
+        "地中海式饮食可能改善一级预防中的部分心血管风险因素。",
+        "现有随机试验证据具有积极信号，但许多心血管临床终点仍存在不确定性。",
+        "用于二级预防的证据目前有限。"
+      ],
+      "does_not_support": [
+        "不能断言这种饮食一定能预防所有心肌梗死、卒中和心血管死亡。",
+        "一级预防和二级预防的证据强度并不相同。",
+        "地中海饮食不能替代医生开具的心血管治疗方案。"
+      ],
+      "url": "https://www.cochrane.org/evidence/CD009825_mediterranean-style-diet-prevention-cardiovascular-disease"
+    }
+  ],
+  "safe_actions": [
+    "在适合自身情况时，可采用富含植物性食物、豆类、全谷物、坚果和橄榄油的整体饮食模式。",
+    "应根据过敏情况、能量需求、文化偏好和已有医疗建议进行调整。",
+    "如已患心血管疾病或正在服用相关药物，重大饮食调整前应咨询医生。"
+  ],
+  "unsafe_actions": [
+    "不得因为调整饮食而自行停用心血管药物。",
+    "不得把某一种食物、补充剂或食用油当作保证有效的预防治疗。",
+    "不得把群体研究证据当作个人诊断或预后判断。"
+  ],
+  "missing_evidence": [
+    "仍需在更广泛人群和二级预防场景中开展更多报告临床终点的高质量试验。"
+  ],
+  "evidence_version": "2026-08-11"
+}

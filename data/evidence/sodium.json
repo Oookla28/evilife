@@ -1,0 +1,72 @@
+{
+  "packet_id": "packet-sodium-hypertension-v1",
+  "topic": "sodium_and_hypertension",
+  "question": "限钠饮食对高血压是否真的有帮助？",
+  "overall_direction": "support",
+  "evidence_strength": "high",
+  "conflict_detected": false,
+  "evidence_items": [
+    {
+      "evidence_id": "E1",
+      "source_id": "WHO_SODIUM_GUIDELINE_2012",
+      "title": "成人和儿童钠摄入指南",
+      "year": 2012,
+      "source_type": "指南",
+      "organization": "世界卫生组织",
+      "population": "适用于大多数人群中的成人和儿童；成人建议从 16 岁起适用，儿童目标应按年龄下调。",
+      "intervention": "减少膳食钠摄入。",
+      "outcome": "血压以及心血管疾病、卒中和冠心病风险。",
+      "direction": "support",
+      "finding": "世界卫生组织建议成年人减少钠摄入，以降低血压和心血管风险；成人目标为每日钠摄入低于 2 克，约等于 5 克食盐。",
+      "limitations": "这是群体层面的建议，不能替代个体化医疗，还需结合钾及其他营养素相关指导综合判断。",
+      "supports": [
+        "减少过量钠摄入是有证据支持的群体降压策略。",
+        "成人建议每日钠摄入低于 2 克，约等于 5 克食盐。"
+      ],
+      "does_not_support": [
+        "低钠饮食不能替代降压药物。",
+        "并非所有人都应采用极端的零盐饮食。"
+      ],
+      "url": "https://www.who.int/publications/i/item/9789241504836"
+    },
+    {
+      "evidence_id": "E2",
+      "source_id": "COCHRANE_CD004022_2020",
+      "title": "低钠与高钠饮食对血压及相关激素和血脂指标的影响",
+      "year": 2020,
+      "source_type": "系统综述",
+      "organization": "考克兰高血压组",
+      "population": "195 项随机干预研究中的 12,296 名正常血压或血压升高参与者。",
+      "intervention": "比较低钠与高钠饮食；平均食盐摄入量从每日 11.5 克降至 3.8 克。",
+      "outcome": "收缩压、舒张压、相关激素以及血脂指标。",
+      "direction": "support_with_boundaries",
+      "finding": "高血压人群的平均降压幅度为 5.7/2.9 mmHg，大于正常血压人群的 1.1/0 mmHg。",
+      "limitations": "研究持续时间从 3 天到 1100 天不等，多数研究对象为白人；该综述主要评估中间结局，不能据此证明死亡率获益。",
+      "supports": [
+        "减少钠摄入可以降低血压，对高血压人群的作用更明显。",
+        "高血压人群报告的平均降压幅度为 5.7/2.9 mmHg。",
+        "正常血压人群报告的平均降压幅度为 1.1/0 mmHg。"
+      ],
+      "does_not_support": [
+        "不能认为每个人的血压反应都完全相同。",
+        "这些试验不能证明激进限钠可以降低死亡率。",
+        "减少食盐后也不能自行停药。"
+      ],
+      "url": "https://www.cochrane.org/evidence/CD004022_effect-low-salt-diet-blood-pressure-and-some-hormones-and-lipids-people-normal-and-elevated-blood"
+    }
+  ],
+  "safe_actions": [
+    "比较包装食品营养标签中的钠含量。",
+    "减少高盐加工食品和高盐调味品的摄入。",
+    "如涉及高血压、肾脏疾病或相关用药，应与医生讨论个体化钠摄入目标。"
+  ],
+  "unsafe_actions": [
+    "不得在未咨询医生的情况下停用或调整降压药。",
+    "不得采用极端的零盐饮食。",
+    "不得把群体指南直接当作个体诊断或治疗方案。"
+  ],
+  "missing_evidence": [
+    "个体反应会随基线血压、合并疾病、用药情况和整体饮食背景而变化。"
+  ],
+  "evidence_version": "2026-08-11"
+}

@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://evilife.local/contracts/verdict.schema.json",
+  "title": "Claim-level Verdict",
+  "description": "Final 是/部分正确/否/证据不足 verdict computed deterministically from bidirectional evidence groups. Never hallucinated by a model.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "verdict",
+    "confidence",
+    "evidence_grade",
+    "claim",
+    "short_reason",
+    "applies_to",
+    "does_not_apply_to",
+    "supporting_evidence",
+    "opposing_evidence",
+    "uncertainty",
+    "last_updated"
+  ],
+  "properties": {
+    "verdict": {
+      "enum": ["true", "partly_true", "false", "insufficient"]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "evidence_grade": {
+      "enum": ["high", "moderate", "low", "insufficient"]
+    },
+    "claim": { "type": "string", "minLength": 1 },
+    "short_reason": { "type": "string", "minLength": 1 },
+    "applies_to": { "type": "array", "items": { "type": "string" } },
+    "does_not_apply_to": { "type": "array", "items": { "type": "string" } },
+    "supporting_evidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/verdictEvidenceItem" }
+    },
+    "opposing_evidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/verdictEvidenceItem" }
+    },
+    "uncertainty": { "type": "array", "items": { "type": "string" } },
+    "last_updated": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "verdictEvidenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "source_id",
+        "title",
+        "source_type",
+        "direction",
+        "finding",
+        "url"
+      ],
+      "properties": {
+        "evidence_id": { "type": "string", "minLength": 1 },
+        "source_id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "year": { "type": ["integer", "null"] },
+        "source_type": { "type": "string", "minLength": 1 },
+        "organization": { "type": ["string", "null"] },
+        "direction": {
+          "enum": ["support", "against", "mixed", "context"]
+        },
+        "finding": { "type": "string", "minLength": 1 },
+        "url": { "type": "string" },
+        "channel": {
+          "enum": ["curated_database", "live_medical_search", null]
+        },
+        "reliability_score": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}

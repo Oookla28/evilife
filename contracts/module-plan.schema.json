@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "module-plan.schema.json",
+  "title": "EviLife Module Plan Item",
+  "type": "object",
+  "required": ["module_id", "type", "status", "props"],
+  "properties": {
+    "module_id": {"type": "string", "minLength": 1},
+    "type": {"type": "string", "minLength": 1},
+    "version": {"type": "string"},
+    "priority": {"type": "number"},
+    "status": {"enum": ["loading", "ready", "error", "skipped", "pending"]},
+    "props": {"type": "object"}
+  },
+  "additionalProperties": false
+}

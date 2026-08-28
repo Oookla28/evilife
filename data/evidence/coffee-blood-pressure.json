@@ -1,0 +1,31 @@
+{
+  "packet_id": "packet-coffee-blood-pressure-v1",
+  "topic": "coffee_and_blood_pressure",
+  "question": "咖啡摄入与血压有什么证据？",
+  "overall_direction": "mixed",
+  "evidence_strength": "medium",
+  "conflict_detected": false,
+  "evidence_items": [
+    {
+      "evidence_id": "E1",
+      "source_id": "PMID_37447390",
+      "title": "成人咖啡摄入与高血压风险：系统综述与荟萃分析",
+      "year": 2023,
+      "source_type": "观察性研究系统综述与荟萃分析",
+      "organization": "Nutrients",
+      "population": "25项成人横断面和队列研究。",
+      "intervention": "较高与较低咖啡摄入比较。",
+      "outcome": "高血压发生风险。",
+      "direction": "mixed",
+      "finding": "较高咖啡摄入与较低高血压风险相关，但结果随地区、性别、研究质量和样本量而变化，不能据此确认因果。",
+      "limitations": "主要是观察性研究；咖啡类型、剂量、吸烟和个体咖啡因反应可能造成混杂。",
+      "supports": ["长期适量喝咖啡并未显示普遍增加高血压风险。"],
+      "does_not_support": ["观察性相关不能证明咖啡会降低血压，也不能排除敏感个体短期血压升高。"],
+      "url": "https://pubmed.ncbi.nlm.nih.gov/37447390/"
+    }
+  ],
+  "safe_actions": ["观察饮用后的心悸、睡眠和血压变化，并控制添加糖。", "血压控制不佳时记录摄入量并与医生讨论。"],
+  "unsafe_actions": ["不要用咖啡治疗高血压。", "出现明显心悸、胸痛或持续血压异常时不要继续自行试验。"],
+  "missing_evidence": ["仍需更强的因果研究区分咖啡种类、剂量和个体差异。"],
+  "evidence_version": "2026-08-12"
+}

@@ -1,0 +1,9 @@
+fastapi>=0.116,<1
+uvicorn[standard]>=0.35,<1
+pydantic>=2.11,<3
+python-multipart>=0.0.20,<1
+httpx>=0.28,<1
+pytest>=8.4,<9
+jsonschema>=4.25,<5
+argon2-cffi>=23.1,<26
+pypdf>=5,<7

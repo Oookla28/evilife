@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: evilife-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: EVILIFE_RUNTIME_DB
+        value: /var/data/runtime.sqlite3
+      - key: EVILIFE_AUTH_REQUIRED
+        value: "true"
+      - key: EVILIFE_COOKIE_SECURE
+        value: "true"
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: EVILIFE_AI_BASE_URL
+        value: https://api.deepseek.com
+      - key: EVILIFE_AI_FAST_MODEL
+        value: deepseek-v4-flash
+      - key: EVILIFE_AI_DEEP_MODEL
+        value: deepseek-v4-pro
+      - key: EVILIFE_ALLOWED_ORIGINS
+        sync: false
+    disk:
+      name: evilife-runtime-data
+      mountPath: /var/data
+      sizeGB: 1

@@ -1,0 +1,48 @@
+{
+  "packet_id": "packet-time-restricted-eating-weight-v1",
+  "topic": "time_restricted_eating_and_weight",
+  "question": "限时进食对体重管理有什么证据？",
+  "overall_direction": "mixed",
+  "evidence_strength": "low",
+  "conflict_detected": false,
+  "evidence_items": [
+    {
+      "evidence_id": "E1",
+      "source_id": "PMID_38229272",
+      "title": "限时进食对代谢稳态影响的系统综述与荟萃分析",
+      "year": 2025,
+      "source_type": "随机试验系统综述与荟萃分析",
+      "organization": "Angiology",
+      "population": "22项随机试验中的健康成人、糖尿病前期及超重人群，共1004人。",
+      "intervention": "限时进食，与对照饮食方案比较。",
+      "outcome": "体重、BMI、空腹血糖和血脂等代谢指标。",
+      "direction": "support",
+      "finding": "荟萃分析观察到限时进食组的体重、BMI和空腹血糖有所下降，但部分其他代谢指标没有明显组间差异。",
+      "limitations": "试验规模较小、方案和人群差异较大，不能证明限时进食优于等热量的常规能量限制。",
+      "supports": ["限时进食可作为部分成年人控制体重的可选行为工具。"],
+      "does_not_support": ["不能据此保证减重，也不能证明16:8一定优于普通控制热量。"],
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38229272/"
+    },
+    {
+      "evidence_id": "E2",
+      "source_id": "COCHRANE_CD015610_2026",
+      "title": "超重或肥胖成人的间歇性禁食",
+      "year": 2026,
+      "source_type": "Cochrane系统综述",
+      "organization": "Cochrane",
+      "population": "超重或肥胖成年人，研究随访多数不超过12个月。",
+      "intervention": "间歇性禁食，与常规饮食建议或持续能量限制比较。",
+      "outcome": "体重下降、生活质量及不良事件。",
+      "direction": "mixed",
+      "finding": "与常规饮食建议相比可能减轻体重，但与持续能量限制相比可能几乎没有差异，且证据确定性很低。",
+      "limitations": "长期效果、依从性和不同人群中的效果仍不确定。",
+      "supports": ["在能够长期坚持的前提下，间歇性禁食可以作为体重管理方案之一。"],
+      "does_not_support": ["与持续控制热量相比，没有可靠证据证明限时进食带来额外减重优势。"],
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41692034/"
+    }
+  ],
+  "safe_actions": ["选择能够长期坚持且营养完整的进食时间安排。", "记录体重、饥饿感、睡眠和不适，而不是只看计时器。"],
+  "unsafe_actions": ["孕期、进食障碍史或使用降糖药时不要自行开始严格禁食。", "不要把16:8当作保证减重或替代医疗管理的方法。"],
+  "missing_evidence": ["长期结局和特殊人群证据仍不足。"],
+  "evidence_version": "2026-08-12"
+}

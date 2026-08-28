@@ -1,0 +1,5 @@
+{"id": "R001", "query": "限钠饮食 高血压", "expected_topic": "sodium_and_hypertension", "note": "golden topic"}
+{"id": "R002", "query": "地中海饮食 心血管", "expected_topic": "mediterranean_diet_and_cardiovascular_risk", "note": "golden topic"}
+{"id": "R003", "query": "16:8 限时进食 减重", "expected_topic": "unknown->corpus", "note": "corpus 检索 TRE claims"}
+{"id": "R004", "query": "咖啡 血压", "expected_topic": "unknown", "note": "无 golden 无 corpus 命中，验证降级"}
+{"id": "R005", "query": "所有人都应该严格限盐吗", "expected_topic": "sodium_and_hypertension", "note": "deep path 双向"}

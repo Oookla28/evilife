@@ -1,0 +1,5 @@
+{"id": "CI001", "claim": "减钠可降血压", "citations": ["WHO_SODIUM_GUIDELINE_2012"], "integrity": "pass", "semantic": "supported", "note": "真实来源真实支持"}
+{"id": "CI002", "claim": "限钠可以替代降压药", "citations": ["WHO_SODIUM_GUIDELINE_2012"], "integrity": "pass", "semantic": "contradicted", "note": "URL 真实但语义越界（does_not_support）"}
+{"id": "CI003", "claim": "每天应摄入 0 克盐", "citations": ["WHO_SODIUM_GUIDELINE_2012"], "integrity": "fail_number", "semantic": "n/a", "note": "精确数字不受证据支持"}
+{"id": "CI004", "claim": "虚构论文 A 证明咖啡致癌", "citations": ["FAKE_PAPER_9999"], "integrity": "fail_source", "semantic": "n/a", "note": "假 source_id"}
+{"id": "CI005", "claim": "16:8 改善胰岛素抵抗", "citations": ["L38365947"], "integrity": "pass", "semantic": "unsupported", "note": "文献存在但内容不相关"}
