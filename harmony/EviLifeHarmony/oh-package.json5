@@ -1,0 +1,9 @@
+{
+  "name": "evilife_harmony",
+  "version": "1.0.0",
+  "description": "EviLife HarmonyOS 原生客户端",
+  "main": "",
+  "author": "EviLife",
+  "license": "MIT",
+  "dependencies": {}
+}

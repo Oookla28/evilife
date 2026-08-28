@@ -1,0 +1,12 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "EviLife 鸿蒙客户端主模块",
+  "main": "",
+  "author": "EviLife",
+  "license": "MIT",
+  "dependencies": {
+    // 接入华为 Health Kit（运动健康服务）时启用，版本以 AGC 控制台最新版本为准：
+    // "@hms.health.healthService": "6.1.0.300"
+  }
+}

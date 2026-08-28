@@ -218,3 +218,15 @@ D:\Python\EviLife-Backend\.venv\Scripts\python.exe -m pytest backend\tests
   网页端二维码页见 `public/pairing-qr.html`。
 
 运行方式见 `ios/README.md`。真机需要 Signing & Capabilities 配置 HealthKit 与签名团队。
+
+## HarmonyOS 原生应用
+
+`harmony/EviLifeHarmony` 是 ArkTS + ArkUI 的鸿蒙原生客户端（Stage 模型，目标 HarmonyOS 6 / API 20，界面风格对齐 iOS 版）：
+
+- **登录 / 注册**：`POST /api/v1/auth/login|register`，复用服务端会话 Cookie；
+- **循证问答**：`POST /api/v1/orchestrate`，渲染分级回答（含安全边界拒绝与降级提示）；
+- **扫码绑定网页账号**：HarmonyOS 系统扫码服务（`@kit.ScanKit`），解析团队协议 JSON / `code` / URL / 纯 6 位码，`POST /api/v1/device-pairing/claim` 绑定；
+- **健康数据同步入口**：后端 `huawei_health_kit` 连接器 + `HealthSyncService` 上传协议已就绪，Health Kit SDK 需在 AGC 开通服务后安装（步骤见 `harmony/EviLifeHarmony/README.md`）；
+- **服务器地址配置**：本地持久化。
+
+打包与真机测试步骤见 `harmony/README.md` 与 `harmony/EviLifeHarmony/README.md`。构建 `.hap` 需要 DevEco Studio 6.0+ 与 HarmonyOS SDK（API 20）。
