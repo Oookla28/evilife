@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -42,6 +43,19 @@ class ConnectorIngestResponse(BaseModel):
     accepted: int
     skipped: int
     records: list[ObservationRecord]
+
+
+class PairingSession(BaseModel):
+    id: str
+    connector_id: ConnectorId
+    token: str
+    pairing_url: str
+    expires_at: datetime
+    status: Literal["pending", "paired", "expired"] = "pending"
+
+
+class PairingCompleteRequest(ConnectorIngestRequest):
+    token: str = Field(min_length=16, max_length=240)
 
 
 SUPPORTED_KINDS = [

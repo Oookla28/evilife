@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { Bot, Cable, FileInput, HeartPulse, LoaderCircle, ShieldCheck, Smartphone, Upload } from "lucide-react";
 import { MedicalEvidenceCardFlow } from "@/components/evidence/MedicalEvidenceCardFlow";
 import { ComprehensiveHealthCard } from "./ComprehensiveHealthCard";
-import { analyzeHealthProfile, deleteObservation, getAppleHealthImport, getHealthConnectors, startAppleHealthImport, type CompletedAppleHealthImport, type HealthConnector, type ObservationRecord, type ProfileAnalysisCard } from "@/lib/api/health-profile";
+import { analyzeHealthProfile, createHealthPairing, deleteObservation, getAppleHealthImport, getHealthConnectors, getHealthPairing, startAppleHealthImport, type CompletedAppleHealthImport, type HealthConnector, type ObservationRecord, type PairingSession, type ProfileAnalysisCard } from "@/lib/api/health-profile";
 import type { MedicalFlowCard } from "@/lib/evidence/build-medical-flow-cards";
 import type { MedicalCardIcon } from "@/lib/evidence/build-medical-flow-cards";
 
@@ -199,6 +200,8 @@ export function HealthInsightFlow({ observations, appleImport, onAppleImportComp
   const [error, setError] = useState("");
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState("");
+  const [pairing, setPairing] = useState<PairingSession | null>(null);
+  const [pairingQr, setPairingQr] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { getHealthConnectors().then(setConnectors).catch(() => setError("连接器列表暂时不可用。")); }, []);
   const recordCards = useMemo(() => observationCards(observations), [observations]);
@@ -236,6 +239,23 @@ export function HealthInsightFlow({ observations, appleImport, onAppleImportComp
     finally { setLoading(false); }
   };
 
+  const startPairing = async (connectorId: HealthConnector["id"]) => {
+    setError("");
+    try {
+      const session = await createHealthPairing(connectorId);
+      const qr = await QRCode.toDataURL(JSON.stringify({ pairing_url: session.pairing_url, token: session.token, connector_id: session.connector_id }), { width: 220, margin: 2 });
+      setPairing(session); setPairingQr(qr);
+      const poll = window.setInterval(async () => {
+        try {
+          const next = await getHealthPairing(session.id);
+          setPairing(next);
+          if (next.status !== "pending") window.clearInterval(poll);
+        } catch { window.clearInterval(poll); }
+      }, 2000);
+      window.setTimeout(() => window.clearInterval(poll), 610000);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "无法创建配对二维码。 "); }
+  };
+
   return (
     <section className="mt-6 rounded-[22px] border border-border-divider bg-white p-5 shadow-[0_12px_35px_rgba(35,50,48,0.035)] sm:p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -248,8 +268,9 @@ export function HealthInsightFlow({ observations, appleImport, onAppleImportComp
       <MedicalEvidenceCardFlow key="profile-health-flow" cards={cards} initialDisplay="instant" noun="观察卡" ariaLabel="健康观察卡拍立得与 Cover Flow" canDeleteCard={(card) => card.id.startsWith("observation:")} onDeleteCard={async (card) => { const id = card.id.replace("observation:", ""); await deleteObservation(id); onObservationDeleted(id); }} />
       <div className="mt-6 border-t border-border-divider pt-5">
         <div className="flex items-center gap-2"><Cable size={17} className="text-brand" /><h3 className="text-sm font-semibold text-text-primary">连接健康软件</h3></div><p className="mt-1 text-xs text-text-secondary">连接器只声明真实接入条件；授权令牌和平台密钥只由手机端或后端保存。</p>
-        <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">{connectors.map((connector) => { const Icon = connectorIcon(connector.id); return <article key={connector.id} className="rounded-[16px] border border-border-divider bg-[#FBFCFC] p-4"><div className="flex items-center gap-2"><span className="grid h-9 w-9 place-items-center rounded-xl bg-white text-brand shadow-sm"><Icon size={18} /></span><h4 className="text-sm font-medium text-text-primary">{connector.label}</h4></div><p className={`mt-3 text-xs ${connector.status === "available" ? "text-brand" : "text-text-secondary"}`}>{statusLabel[connector.status]}</p><p className="mt-1.5 text-[11px] leading-5 text-text-secondary">{connector.authorization}</p>{connector.id === "apple_healthkit" ? <><input ref={fileInputRef} type="file" accept=".xml,text/xml,application/xml" className="sr-only" aria-label="选择 Apple 健康导出 XML" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importAppleHealth(file); }} /><button type="button" disabled={importing} onClick={() => fileInputRef.current?.click()} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-brand/20 bg-white px-3 py-2 text-xs font-medium text-brand hover:bg-brand/5 disabled:opacity-60">{importing ? <LoaderCircle size={14} className="animate-spin" /> : <Upload size={14} />}{importing ? "正在导入" : "导入 XML"}</button></> : null}</article>; })}</div>
+        <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">{connectors.map((connector) => { const Icon = connectorIcon(connector.id); return <article key={connector.id} className="rounded-[16px] border border-border-divider bg-[#FBFCFC] p-4"><div className="flex items-center gap-2"><span className="grid h-9 w-9 place-items-center rounded-xl bg-white text-brand shadow-sm"><Icon size={18} /></span><h4 className="text-sm font-medium text-text-primary">{connector.label}</h4></div><p className={`mt-3 text-xs ${connector.status === "available" ? "text-brand" : "text-text-secondary"}`}>{statusLabel[connector.status]}</p><p className="mt-1.5 text-[11px] leading-5 text-text-secondary">{connector.authorization}</p>{connector.id !== "generic_import" ? <button type="button" onClick={() => void startPairing(connector.id)} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-brand/20 bg-white px-3 py-2 text-xs font-medium text-brand hover:bg-brand/5"><Smartphone size={14} />扫码配对</button> : null}{connector.id === "apple_healthkit" ? <><input ref={fileInputRef} type="file" accept=".xml,text/xml,application/xml" className="sr-only" aria-label="选择 Apple 健康导出 XML" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importAppleHealth(file); }} /><button type="button" disabled={importing} onClick={() => fileInputRef.current?.click()} className="mt-3 ml-2 inline-flex items-center gap-1.5 rounded-lg border border-brand/20 bg-white px-3 py-2 text-xs font-medium text-brand hover:bg-brand/5 disabled:opacity-60">{importing ? <LoaderCircle size={14} className="animate-spin" /> : <Upload size={14} />}{importing ? "正在导入" : "导入 XML"}</button></> : null}</article>; })}</div>
         {importMessage ? <p role="status" className="mt-3 text-xs text-brand">{importMessage}</p> : null}
+        {pairing && pairingQr ? <div className="mt-4 flex flex-wrap items-center gap-4 rounded-xl border border-brand/20 bg-brand/5 p-4"><img src={pairingQr} alt="手机扫码配对健康数据" width={180} height={180} /><div className="text-xs leading-6 text-text-secondary"><p className="font-medium text-text-primary">请用手机同步 App 扫码</p><p>扫码后在手机系统授权健康数据，之后 App 可后台自动同步。</p><p className="mt-1 text-brand">状态：{pairing.status === "paired" ? "已配对" : pairing.status === "expired" ? "已过期" : "等待手机扫码"}</p></div></div> : null}
       </div>
     </section>
   );

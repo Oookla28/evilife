@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import tempfile
+import secrets
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -56,6 +57,8 @@ from .health_connectors import (
     ConnectorId,
     ConnectorIngestRequest,
     ConnectorIngestResponse,
+    PairingCompleteRequest,
+    PairingSession,
     HealthConnector,
     get_connector,
 )
@@ -118,6 +121,9 @@ _run_owners: dict[str, str] = {}
 _apple_import_jobs: dict[str, AppleHealthImportJob] = {}
 _apple_import_owners: dict[str, str] = {}
 _apple_import_lock = Lock()
+_pairing_sessions: dict[str, PairingSession] = {}
+_pairing_owners: dict[str, str] = {}
+_pairing_lock = Lock()
 MAX_APPLE_EXPORT_BYTES = 1024 * 1024 * 1024
 
 _runtime_repository = lifestyle_store.repository
@@ -381,6 +387,81 @@ def delete_observation(
 @app.get("/api/v1/health-connectors", response_model=list[HealthConnector])
 def list_health_connectors() -> list[HealthConnector]:
     return CONNECTORS
+
+
+@app.post("/api/v1/health-pairing", response_model=PairingSession)
+def create_health_pairing(
+    connector_id: ConnectorId,
+    request: Request,
+    principal: Principal = Depends(_principal),
+) -> PairingSession:
+    connector = get_connector(connector_id)
+    if connector is None:
+        raise HTTPException(status_code=404, detail="connector not found")
+    pairing_id = f"pair-{secrets.token_urlsafe(12)}"
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    origin = str(request.base_url).rstrip("/")
+    session = PairingSession(
+        id=pairing_id,
+        connector_id=connector_id,
+        token=token,
+        pairing_url=f"{origin}/api/v1/health-pairing/{pairing_id}/complete",
+        expires_at=expires_at,
+    )
+    with _pairing_lock:
+        _pairing_sessions[pairing_id] = session
+        _pairing_owners[pairing_id] = principal.subject_id
+    return session
+
+
+@app.get("/api/v1/health-pairing/{pairing_id}", response_model=PairingSession)
+def get_health_pairing(
+    pairing_id: str,
+    principal: Principal = Depends(_principal),
+) -> PairingSession:
+    with _pairing_lock:
+        session = _pairing_sessions.get(pairing_id)
+        if session is None or _pairing_owners.get(pairing_id) != principal.subject_id:
+            raise HTTPException(status_code=404, detail="pairing session not found")
+        if session.status == "pending" and session.expires_at <= datetime.now(timezone.utc):
+            session = session.model_copy(update={"status": "expired"})
+            _pairing_sessions[pairing_id] = session
+        return session
+
+
+@app.post("/api/v1/health-pairing/{pairing_id}/complete", response_model=ConnectorIngestResponse)
+def complete_health_pairing(
+    pairing_id: str,
+    payload: PairingCompleteRequest,
+) -> ConnectorIngestResponse:
+    with _pairing_lock:
+        session = _pairing_sessions.get(pairing_id)
+        if session is None or session.token != payload.token:
+            raise HTTPException(status_code=404, detail="pairing session not found")
+        if session.status != "pending" or session.expires_at <= datetime.now(timezone.utc):
+            raise HTTPException(status_code=410, detail="pairing session expired")
+        _pairing_sessions[pairing_id] = session.model_copy(update={"status": "paired"})
+        subject_id = _pairing_owners[pairing_id]
+    connector = get_connector(session.connector_id)
+    assert connector is not None
+    records: list[ObservationRecord] = []
+    accepted = 0
+    for item in payload.observations:
+        record, created = lifestyle_store.add_device_observation(
+            item.observation,
+            connector_id=session.connector_id,
+            external_id=item.external_id,
+            subject_id=subject_id,
+        )
+        records.append(record)
+        accepted += int(created)
+    return ConnectorIngestResponse(
+        connector_id=session.connector_id,
+        accepted=accepted,
+        skipped=len(records) - accepted,
+        records=records,
+    )
 
 
 def _run_apple_health_import(

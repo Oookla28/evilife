@@ -33,6 +33,14 @@ export interface HealthConnector {
   docs_url: string;
   supported_kinds: ObservationKind[];
 }
+export interface PairingSession {
+  id: string;
+  connector_id: HealthConnector["id"];
+  token: string;
+  pairing_url: string;
+  expires_at: string;
+  status: "pending" | "paired" | "expired";
+}
 export interface ProfileAnalysisCard {
   tone: "summary" | "population" | "boundary" | "action";
   title: string;
@@ -106,6 +114,14 @@ export function deleteObservation(id: string): Promise<ObservationRecord> {
 
 export function getHealthConnectors(): Promise<HealthConnector[]> {
   return apiClient<HealthConnector[]>("/api/v1/health-connectors");
+}
+
+export function createHealthPairing(connectorId: HealthConnector["id"]): Promise<PairingSession> {
+  return apiClient<PairingSession>(`/api/v1/health-pairing?connector_id=${encodeURIComponent(connectorId)}`, { method: "POST" });
+}
+
+export function getHealthPairing(pairingId: string): Promise<PairingSession> {
+  return apiClient<PairingSession>(`/api/v1/health-pairing/${encodeURIComponent(pairingId)}`);
 }
 
 export function analyzeHealthProfile(): Promise<ProfileAnalysisResponse> {

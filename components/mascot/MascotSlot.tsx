@@ -21,18 +21,18 @@ interface MascotSlotProps {
 }
 
 const mascotAssets: Record<MascotState, { src: string; alt: string }> = {
-  idle: { src: "/mascot/idle.gif", alt: "是非题吉祥物待机中" },
-  welcome: { src: "/mascot/welcome.gif", alt: "是非题吉祥物欢迎你" },
-  thinking: { src: "/mascot/thinking.gif", alt: "是非题吉祥物正在思考" },
-  searching: { src: "/mascot/thinking.gif", alt: "是非题吉祥物正在搜索证据" },
-  checking: { src: "/mascot/thinking.gif", alt: "是非题吉祥物正在核对证据" },
-  warning: { src: "/mascot/refuse.gif", alt: "是非题吉祥物无法回答" },
-  care: { src: "/mascot/welcome.gif", alt: "是非题吉祥物正在陪着你" },
-  refuse: { src: "/mascot/refuse.gif", alt: "是非题吉祥物拒绝回答" },
-  complete: { src: "/mascot/success.gif", alt: "是非题吉祥物已完成回答" },
-  success: { src: "/mascot/success.gif", alt: "是非题吉祥物成功完成任务" },
-  error: { src: "/mascot/failure.gif", alt: "是非题吉祥物遇到失败" },
-  failure: { src: "/mascot/failure.gif", alt: "是非题吉祥物遇到失败" },
+  idle: { src: "/mascot/avatar.png", alt: "EviLife 健康助手" },
+  welcome: { src: "/mascot/avatar.png", alt: "EviLife 健康助手" },
+  thinking: { src: "/mascot/avatar.png", alt: "EviLife 健康助手正在思考" },
+  searching: { src: "/mascot/avatar.png", alt: "EviLife 健康助手正在搜索证据" },
+  checking: { src: "/mascot/avatar.png", alt: "EviLife 健康助手正在核对证据" },
+  warning: { src: "/mascot/avatar.png", alt: "EviLife 健康助手" },
+  care: { src: "/mascot/avatar.png", alt: "EviLife 健康助手" },
+  refuse: { src: "/mascot/avatar.png", alt: "EviLife 健康助手" },
+  complete: { src: "/mascot/avatar.png", alt: "EviLife 健康助手" },
+  success: { src: "/mascot/avatar.png", alt: "EviLife 健康助手" },
+  error: { src: "/mascot/avatar.png", alt: "EviLife 健康助手" },
+  failure: { src: "/mascot/avatar.png", alt: "EviLife 健康助手" },
 };
 
 const sizeClasses = {

@@ -38,22 +38,28 @@ export const readConversations = async (): Promise<StoredConversation[]> => {
   return items.map(fromWire);
 };
 
+let saveQueue = Promise.resolve();
+
 export const saveConversation = async (conversation: StoredConversation) => {
   if (conversation.messages.length === 0) return;
-  await apiClient<ConversationWire>(
-    `/api/v1/conversations/${encodeURIComponent(conversation.sessionId)}`,
-    {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        session_id: conversation.sessionId,
-        title: conversation.title,
-        mode: conversation.mode,
-        messages: conversation.messages,
-      }),
-    },
-  );
-  window.dispatchEvent(new Event("evilife:history-updated"));
+  const request = saveQueue.then(async () => {
+    await apiClient<ConversationWire>(
+      `/api/v1/conversations/${encodeURIComponent(conversation.sessionId)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: conversation.sessionId,
+          title: conversation.title,
+          mode: conversation.mode,
+          messages: conversation.messages,
+        }),
+      },
+    );
+    window.dispatchEvent(new Event("evilife:history-updated"));
+  });
+  saveQueue = request.catch(() => undefined);
+  await request;
 };
 
 export const deleteConversation = async (sessionId: string) => {
