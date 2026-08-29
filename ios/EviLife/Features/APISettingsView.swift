@@ -97,44 +97,58 @@ struct APISettingsView: View {
                 }
 
                 Section {
-                    Toggle("图片识别", isOn: $store.visionEnabled)
-                    TextField("视觉 API 地址", text: $store.visionBaseURL)
-                        .keyboardType(.URL)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    SecureField("视觉 API Key", text: $store.visionKey)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    TextField("视觉模型名", text: $store.visionModel)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    Button {
-                        Task { await testVision() }
-                    } label: {
-                        HStack {
-                            if testingVision {
-                                ProgressView().controlSize(.small)
-                                Text("正在测试…")
-                            } else {
-                                Text("测试视觉接口")
-                            }
-                            Spacer()
-                            if !visionTestResult.isEmpty {
-                                Image(systemName: visionTestFailed ? "xmark.circle.fill" : "checkmark.circle.fill")
-                                    .foregroundStyle(visionTestFailed ? EvilifeTheme.riskRefused : EvilifeTheme.supported)
+                    Picker("图片识别方式", selection: $store.visionMode) {
+                        Text("主接口多模态（DeepSeek 原生）").tag("same")
+                        Text("独立视觉桥接（自托管 VL2）").tag("bridge")
+                    }
+                    .pickerStyle(.menu)
+                    if store.visionMode == "same" {
+                        TextField("多模态模型名", text: $store.multimodalModel)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        Text("图片直接用主接口的地址和 Key 发给这个多模态模型（如 deepseek-v4-flash），无需单独的视觉服务。")
+                            .font(.caption2)
+                            .foregroundStyle(EvilifeTheme.textTertiary)
+                    } else {
+                        Toggle("启用视觉桥接", isOn: $store.visionEnabled)
+                        TextField("视觉 API 地址", text: $store.visionBaseURL)
+                            .keyboardType(.URL)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        SecureField("视觉 API Key", text: $store.visionKey)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        TextField("视觉模型名", text: $store.visionModel)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        Button {
+                            Task { await testVision() }
+                        } label: {
+                            HStack {
+                                if testingVision {
+                                    ProgressView().controlSize(.small)
+                                    Text("正在测试…")
+                                } else {
+                                    Text("测试视觉接口")
+                                }
+                                Spacer()
+                                if !visionTestResult.isEmpty {
+                                    Image(systemName: visionTestFailed ? "xmark.circle.fill" : "checkmark.circle.fill")
+                                        .foregroundStyle(visionTestFailed ? EvilifeTheme.riskRefused : EvilifeTheme.supported)
+                                }
                             }
                         }
-                    }
-                    .disabled(testingVision || !store.hasVisionKey)
-                    if !visionTestResult.isEmpty {
-                        Text(visionTestResult)
-                            .font(.footnote)
-                            .foregroundStyle(visionTestFailed ? EvilifeTheme.riskRefused : EvilifeTheme.textSecondary)
+                        .disabled(testingVision || !store.hasVisionKey)
+                        if !visionTestResult.isEmpty {
+                            Text(visionTestResult)
+                                .font(.footnote)
+                                .foregroundStyle(visionTestFailed ? EvilifeTheme.riskRefused : EvilifeTheme.textSecondary)
+                        }
                     }
                 } header: {
-                    Text("视觉模型")
+                    Text("图片识别（视觉）")
                 } footer: {
-                    Text("用于直连模式的图片识别。")
+                    Text("默认走主接口多模态：图片以 base64 直发主地址的多模态模型。官方 DeepSeek 旧文本 API 不接图片时才需要独立桥接（自托管 DeepSeek-VL2 兼容服务）。")
                 }
 
                 Section {

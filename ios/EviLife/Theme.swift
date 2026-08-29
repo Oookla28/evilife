@@ -68,6 +68,17 @@ func observationKindLabel(_ kind: String) -> String {
     }
 }
 
+
+/// 睡眠时长显示为「X 小时 Y 分钟」
+func sleepDurationLabel(_ minutes: Double) -> String {
+    let total = Int(minutes.rounded())
+    let hours = total / 60
+    let mins = total % 60
+    if hours == 0 { return "\(mins) 分钟" }
+    if mins == 0 { return "\(hours) 小时" }
+    return "\(hours) 小时 \(mins) 分钟"
+}
+
 func observationUnit(_ kind: String) -> String {
     switch kind {
     case "water_ml": return "ml"

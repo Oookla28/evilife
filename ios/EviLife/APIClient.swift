@@ -65,7 +65,20 @@ final class APIClient {
         do {
             (data, response) = try await session.data(for: request)
         } catch {
-            throw APIRequestError.network(error.localizedDescription)
+            // 网络失败：地址可能已过期（隧道前缀/局域网 IP 变化）。
+            // 重新探测后端地址后重试一次，自动愈合。
+            await AppConfig.probe()
+            do {
+                var retried = request
+                if let url = retried.url {
+                    let path = url.path.hasPrefix("/") ? url.path : "/\(url.path)"
+                    let query = url.query.map { "?\($0)" } ?? ""
+                    retried.url = URL(string: AppConfig.baseURL + path + query)
+                }
+                (data, response) = try await session.data(for: retried)
+            } catch {
+                throw APIRequestError.network(error.localizedDescription)
+            }
         }
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             throw APIRequestError.http(http.statusCode, Self.errorDetail(from: data) ?? "请求未通过服务器校验")

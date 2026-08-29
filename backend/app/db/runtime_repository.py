@@ -94,10 +94,6 @@ class RuntimeRepository:
             row = connection.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
         return dict(row) if row is not None else None
 
-    def count_users(self) -> int:
-        with connect(self.path) as connection:
-            return int(connection.execute("SELECT COUNT(*) FROM users").fetchone()[0])
-
     def update_password_hash(self, user_id: str, password_hash: str) -> None:
         with transaction(self.path) as connection:
             connection.execute(
@@ -357,7 +353,8 @@ class RuntimeRepository:
         sql = "SELECT id FROM meals WHERE subject_id = ?"
         params: list[Any] = [subject_id]
         if selected_date is not None:
-            sql += " AND substr(created_at, 1, 10) = ?"
+            # 按北京时间（UTC+8）过滤：凌晨保存的餐食也归到当天
+            sql += " AND date(created_at, '+8 hours') = ?"
             params.append(selected_date.isoformat())
         sql += " ORDER BY created_at DESC"
         with connect(self.path) as connection:

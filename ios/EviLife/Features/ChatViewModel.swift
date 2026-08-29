@@ -183,15 +183,27 @@ final class ChatViewModel: ObservableObject {
         do {
             let store = APIConfigStore.shared
             let reply: String
-            if let imageData, let imageMime, store.visionEnabled {
-                reply = try await DirectAPI.chatVision(
-                    text: trimmed.isEmpty ? nil : trimmed,
-                    imageData: imageData,
-                    imageMime: imageMime,
-                    base: store.visionBaseURL,
-                    key: store.visionKey,
-                    model: store.visionModel,
-                    maxTokens: store.maxTokens)
+            if let imageData, let imageMime {
+                if store.visionMode == "bridge" {
+                    reply = try await DirectAPI.chatVision(
+                        text: trimmed.isEmpty ? nil : trimmed,
+                        imageData: imageData,
+                        imageMime: imageMime,
+                        base: store.visionBaseURL,
+                        key: store.visionKey,
+                        model: store.visionModel,
+                        maxTokens: store.maxTokens)
+                } else {
+                    // 主接口多模态：图片直接发给主地址+主 Key 的多模态模型，无需独立视觉桥接
+                    reply = try await DirectAPI.chatVision(
+                        text: trimmed.isEmpty ? nil : trimmed,
+                        imageData: imageData,
+                        imageMime: imageMime,
+                        base: store.baseURL,
+                        key: store.apiKey,
+                        model: store.multimodalModel,
+                        maxTokens: store.maxTokens)
+                }
             } else {
                 reply = try await DirectAPI.chat(
                     messages: directHistory(),

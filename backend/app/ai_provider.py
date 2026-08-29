@@ -461,14 +461,12 @@ class AIProvider:
         # default Luna route is fast but the image needs Terra's stronger visual
         # reasoning. Keep the order deterministic and never call one model twice.
         dedicated_vision = bool(self.vision_api_key and self.vision_base_url)
-        if not dedicated_vision and "api.deepseek.com" in self.base_url:
-            raise AIProviderError(
-                "vision service is not configured; set EVILIFE_VISION_API_KEY and EVILIFE_VISION_BASE_URL"
-            )
+        # DeepSeek 主接口（deepseek-v4-flash/pro）原生支持多模态：
+        # 未配置独立视觉服务时，图片直接走主客户端，不再要求 EVILIFE_VISION_*。
         models = (
             [self.vision_model]
             if dedicated_vision
-            else list(dict.fromkeys((self.vision_model, self.fast_model, self.deep_model)))
+            else list(dict.fromkeys((self.fast_model, self.deep_model)))
         )
         last_error: AIProviderError | None = None
         empty_result: MealAnalysis | None = None

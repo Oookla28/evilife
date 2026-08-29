@@ -316,6 +316,11 @@ enum ISODate {
         formatter.timeZone = TimeZone(identifier: "Asia/Shanghai")
         return formatter.string(from: Date())
     }
+    /// 本地（Asia/Shanghai）今天的正午 ISO 时间：保证后端按 UTC 日期过滤时
+    /// 与用户看到的本地日期一致（凌晨 0-8 点也不会错位到昨天）。
+    static func localNoon() -> String {
+        "\(today())T12:00:00+08:00"
+    }
     static func parse(_ value: String) -> Date? {
         ISO8601DateFormatter().date(from: value)
             ?? ISO8601DateFormatter.withFractional.date(from: value)

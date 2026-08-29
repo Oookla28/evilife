@@ -59,3 +59,13 @@
 - 手机锁屏时通过 devicectl 启动的 App 会挂起（探测不会执行）：先解锁再启动/回前台。
 - Swift 编译：`withUnsafePointer` 闭包内不能再访问被借用变量（ExclusivityViolation），先拷出 `sa_len`。
 - 多尾随闭包 `Section("标题") { } footer: { }` 在部分 Swift 版本会推断失败，用 `Section { } header: { } footer: { }` 更稳。
+
+## 七、iOS 27 beta：HKErrorDatabaseInaccessible（code 6）
+
+- 现象：授权正常、证书齐全、设备已解锁，查询仍报「Protected health data is inaccessible」
+  （com.apple.healthkit code 6 = 系统健康数据库保护态）。
+- 结论：iOS 26/27 早期 beta 的系统级 HealthKit 回归（健康库重新加密/迁移卡住），
+  与 App 代码无关；重启、重授权均无效。GPT/Claude 等第三方 App 在同设备同样失败。
+- 出路：升级更新版 beta / 回退稳定版 / 换非 beta 设备验证。
+- 排查手段：错误域 com.apple.healthkit code=6；`UIApplication.isProtectedDataAvailable`
+  为 true 仍报错即系统库问题（锁屏场景是另一种触发方式）。

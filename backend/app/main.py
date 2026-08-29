@@ -21,7 +21,6 @@ from pydantic import BaseModel, Field
 from .auth import (
     SESSION_COOKIE,
     AuthService,
-    AccountSummary,
     ConversationResponse,
     ConversationUpsert,
     LoginRateLimiter,
@@ -557,25 +556,6 @@ def create_health_pairing(
     return session
 
 
-@app.get("/api/v1/account/summary", response_model=AccountSummary)
-def account_summary(
-    principal: Principal = Depends(_registered_principal),
-) -> AccountSummary:
-    assert principal.user_id is not None
-    user = _runtime_repository.get_user_by_id(principal.user_id)
-    if user is None:
-        raise HTTPException(status_code=404, detail="账号不存在")
-    return AccountSummary(
-        user=PublicUser(
-            id=user["id"],
-            email=user["email"],
-            display_name=user["display_name"],
-            subject_id=user["subject_id"],
-        ),
-        total_accounts=_runtime_repository.count_users(),
-        registered_at=user.get("created_at"),
-        last_login_at=user.get("last_login_at"),
-    )
 @app.get("/api/v1/health-pairing/{pairing_id}", response_model=PairingSession)
 def get_health_pairing(
     pairing_id: str,

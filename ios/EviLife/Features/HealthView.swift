@@ -57,7 +57,19 @@ struct HealthView: View {
                 Task { await sync.refreshAccessState() }
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-                Task { await sync.refreshAccessState() }
+                Task {
+                    await sync.refreshAccessState()
+                    // 解锁/回到前台且从未成功同步过 → 自动重试
+                    if sync.accessRequested && sync.lastSyncAt == nil {
+                        await syncNow()
+                    }
+                }
+            }
+            .onChange(of: sync.accessRequested) { _, requested in
+                // 首次授权成功（或从设置回来发现已授权）→ 自动同步一次
+                if requested, sync.lastSyncAt == nil {
+                    Task { await syncNow() }
+                }
             }
             .sheet(isPresented: $showScanner) {
                 NavigationStack {
@@ -495,7 +507,8 @@ struct HealthView: View {
                         }
                     } else {
                         Button {
-                            healthAccessNonce += 1
+                            // legacy 授权 API（GPT/Claude 同款）：iOS 27 beta 上新 API 可能有问题
+                            Task { await authorize() }
                         } label: {
                             Text("连接 Apple 健康").frame(maxWidth: .infinity)
                         }
@@ -535,17 +548,35 @@ struct HealthView: View {
         }
     }
 
-    private func syncNow() async {
+    private func authorize() async {
         do {
-            if !sync.accessRequested {
-                healthAccessNonce += 1
-                sync.lastError = "请在系统授权页逐类允许读取后，回来再点一次同步。"
-                return
-            }
+            try await sync.requestAccess() // legacy API（GPT/Claude 同款）
+        } catch {
+            sync.lastError = error.localizedDescription
+            await sync.refreshAccessState()
+        }
+    }
+
+    private func syncNow() async {        do {
             _ = try await sync.sync(days: syncDays)
             await loadSyncedStats()
         } catch {
-            sync.lastError = error.localizedDescription
+            let nsError = error as NSError
+            print("[HK] sync error: domain=\(nsError.domain) code=\(nsError.code) msg=\(nsError.localizedDescription)")
+            let message = error.localizedDescription
+            let friendly: String
+            if nsError.domain == "com.apple.healthkit", nsError.code == 6 {
+                friendly = "系统健康数据库暂不可访问（iOS 26/27 保护态问题）。请重启 iPhone，重启后先打开「健康」App 确认能看到数据，再回来同步。"
+            } else if message.contains("Protected health data") || message.contains("inaccessible") {
+                friendly = "设备已锁定，健康数据受系统保护。请解锁手机后回到 App（会自动重试同步）。"
+            } else {
+                friendly = message
+            }
+            sync.lastError = friendly
+            // 查询为空且还未授权 → 顺带弹 legacy 授权页（GPT/Claude 式一键授权）
+            if !sync.accessRequested {
+                Task { await authorize() }
+            }
         }
     }
 

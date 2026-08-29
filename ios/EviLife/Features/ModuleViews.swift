@@ -23,7 +23,7 @@ struct ModuleCardView: View {
         case "MealAnalyzer":
             MealAnalyzerCard(module: module)
         case "FastingTimer":
-            FastingTimerCard(module: module)
+            EmptyView()
         case "DocumentSummary":
             DocumentSummaryCard(module: module)
         case "ChatFeaturePanel":
@@ -637,6 +637,23 @@ struct MealAnalyzerCard: View {
                 if let error = module.props["analysis_error"]?.string, !error.isEmpty {
                     Text("识别未完成：\(error)").font(.footnote).foregroundStyle(EvilifeTheme.riskRefused)
                 } else {
+                    // 总热量挂在最上面（餐食照片识别后的头部信息）
+                    if let total = module.props["total_calories"]?.stringInts, total.count == 2 {
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Image(systemName: "flame.fill")
+                                .font(.footnote)
+                                .foregroundStyle(.orange)
+                            Text("\(total[0])–\(total[1])")
+                                .font(.title2.monospacedDigit().weight(.bold))
+                                .foregroundStyle(.orange)
+                            Text("kcal · 总热量")
+                                .font(.caption)
+                                .foregroundStyle(EvilifeTheme.textSecondary)
+                            Spacer()
+                        }
+                        .padding(10)
+                        .background(EvilifeTheme.pageBg, in: RoundedRectangle(cornerRadius: 12))
+                    }
                     let items = module.props["items"]?.array ?? []
                     ForEach(items.indices, id: \.self) { index in
                         let item = items[index].object ?? [:]
@@ -654,14 +671,6 @@ struct MealAnalyzerCard: View {
                                     .font(.caption.weight(.medium))
                             }
                         }
-                    }
-                    if let total = module.props["total_calories"]?.stringInts, total.count == 2 {
-                        HStack {
-                            Text("合计估算").font(.footnote.weight(.semibold))
-                            Spacer()
-                            Text("\(total[0])–\(total[1]) kcal").font(.footnote.weight(.semibold))
-                        }
-                        .padding(.top, 4)
                     }
                     if let uncertainty = module.props["overall_uncertainty"]?.string, !uncertainty.isEmpty {
                         Text("估算：\(uncertainty)")

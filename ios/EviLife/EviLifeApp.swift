@@ -9,6 +9,9 @@ struct EviLifeApp: App {
             RootView()
                 .environmentObject(appState)
                 .task {
+#if targetEnvironment(simulator)
+                    await HealthKitSyncService.seedSimulatorHealthDataIfRequested()
+#endif
                     await AppConfig.probe()
                     await appState.bootstrap()
                 }

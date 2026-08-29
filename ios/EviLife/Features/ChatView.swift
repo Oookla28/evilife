@@ -69,7 +69,10 @@ struct ChatView: View {
                                 Text("标准（中）").tag(1)
                                 Text("深入（高）").tag(2)
                             }
-                            Toggle("视觉模型桥接", isOn: $apiStore.visionEnabled)
+                            Picker("图片识别", selection: $apiStore.visionMode) {
+                                Text("多模态（主接口）").tag("same")
+                                Text("独立桥接（VL2）").tag("bridge")
+                            }
                             Divider()
                             Button("API 接入…", systemImage: "bolt.horizontal.circle") {
                                 showAPISettings = true
@@ -130,11 +133,11 @@ struct ChatView: View {
                 }
                 .ignoresSafeArea()
             }
-            .alert("需要视觉模型", isPresented: $showVisionHint) {
+            .alert("图片识别未就绪", isPresented: $showVisionHint) {
                 Button("去配置", role: .cancel) { showAPISettings = true }
                 Button("知道了") { }
             } message: {
-                Text("请配置视觉接口，或关闭直连模式。")
+                Text("直连模式下图片识别需要：多模态模式（填主 Key + 多模态模型名，如 deepseek-v4-flash）或独立桥接模式（配置 VL2 服务）。")
             }
             .photosPicker(isPresented: $showPhotoLibraryPicker, selection: $pickerItem, matching: .images)
         }
@@ -250,10 +253,10 @@ struct ChatView: View {
         !viewModel.isSending && (!inputText.trimmingCharacters(in: .whitespaces).isEmpty || pendingImage != nil)
     }
 
-    /// 照片按钮是否可用：直连模式下需要已配置视觉模型。
+    /// 照片按钮是否可用：直连模式下需主 Key（多模态）或桥接配置。
     private var photoButtonUsable: Bool {
         if apiStore.directEnabled {
-            return apiStore.visionEnabled && apiStore.hasVisionKey
+            return apiStore.photoReady
         }
         return true
     }
