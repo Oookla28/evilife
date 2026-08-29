@@ -152,53 +152,72 @@ D:\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe shell hilog | Select
 - 扫码绑定：网页端「健康档案」页生成配对二维码（6 位码），鸿蒙端「打开相机扫码」或手动输入配对码，绑定后自动登录该网页账号；取消扫码会提示「已取消扫码」。
 - 健康数据同步：完成下方「华为 Health Kit 接入」后授权读取并上传。
 - 服务器地址配置：修改后重启 App 仍生效。
-## 华为 Health Kit 接入（需 AGC + SDK，当前为占位实现）
+## 华为 Health Kit 接入（需 AGC 开通服务 + 私有 SDK）
 
-后端已内置 `huawei_health_kit` 连接器（`backend/app/health_connectors.py`），鸿蒙端已实现上传协议（`HealthSyncService.completePairing`），仅差华为侧 SDK 与授权。接入步骤如下：
+后端已内置 `huawei_health_kit` 连接器，鸿蒙端已实现上传协议与「真实数据优先」的同步流程（`HealthSyncService.syncToDatabase`）。接入后点击「授权并同步健康数据」会读取华为运动健康真实数据并写入当前账号；未接入时保持演示数据流程。
 
-1. 在 [AppGallery Connect](https://developer.huawei.com/consumer/cn/service/josp/agc/index.html) 创建应用，包名 `com.evilife.harmony`，开通「Health Kit」服务，并配置应用签名证书的 SHA-256 指纹。
-2. 在 `entry/oh-package.json5` 添加依赖（版本以 AGC 控制台 / ohpm 最新为准）：
+代码侧已就绪，无需再改逻辑，只需要完成以下华为侧配置：
+
+### 一、AGC 控制台（需华为开发者账号，本机无法代操作）
+
+1. 登录 [AppGallery Connect](https://developer.huawei.com/consumer/cn/service/josp/agc/index.html)，创建应用，包名必须为 `com.evilife.harmony`。
+2. 开通「Health Kit」服务（签署协议后），在「数据权限」中勾选需要的类型：步数、睡眠、静息心率、饮水等。
+3. 配置签名证书 SHA-256 指纹。本机当前调试证书（`C:\Users\liuch\.ohos\config\default_EviLifeHarmony_*.cer`）的指纹为：
+
+   ```
+   DF:21:A3:C0:9F:79:54:57:93:05:F8:5C:64:F8:0C:AD:86:F7:98:53:EE:3A:88:7C:1D:EC:95:D2:18:DF:3A:37
+   ```
+
+   > 注意：重新生成签名证书后指纹会变化，需在 AGC 同步更新；联调阶段请确认 AGC「应用信息」中的调试证书指纹与此一致。
+4. 下载 `agconnect-services.json`，放到工程根目录 `harmony/EviLifeHarmony/`（与 `build-profile.json5` 同级）。
+5. Health Kit SDK 为华为**私有 ohpm 包**（公共仓库查询返回 404），开通服务后 AGC/DevEco 会给出可用的私有仓库地址与版本号（形如 `@hms.health.healthService: 6.x.x.xxx`）。建议在 DevEco Studio 中打开工程，通过 AGC 相关向导完成 SDK 拉取，或在命令行执行：
+
+   ```powershell
+   $env:NODE_HOME = "D:\DevEco Studio\tools\node"
+   $env:Path = "$env:NODE_HOME;" + $env:Path
+   D:\DevEco Studio\tools\ohpm\bin\ohpm.bat config set registry "<AGC 提供的私有仓库地址>"
+   cd harmony/EviLifeHarmony
+   D:\DevEco Studio\tools\ohpm\bin\ohpm.bat install
+   ```
+
+### 二、启用 SDK 依赖与读取实现（本机操作）
+
+1. 在 `entry/oh-package.json5` 的 `dependencies` 中启用：
 
    ```json5
    "dependencies": {
-     "@hms.health.healthService": "<最新版本>"
+     "@hms.health.healthService": "<AGC 控制台给出的版本>"
    }
    ```
 
-3. 在 DevEco Terminal（或命令行）执行 `ohpm install`。
-4. 在 `HealthSyncService.ets` 中替换占位实现，示例代码（以官方文档为准）：
+2. 将模板文件 `entry/src/main/ets/common/HealthKitService.ets.template` **重命名为 `HealthKitService.ets`**（去掉 `.template`）。
+3. 在 `EntryAbility.ets` 的 `onWindowStageCreate`（或 `Index.ets` 的 `aboutToAppear`）中调用一次注册：
 
    ```typescript
-   import healthService from '@hms.health.healthService';
-
-   // 1) 授权读取步数 / 睡眠 / 心率
-   await healthService.authorize([
-     healthService.HealthDataTypes.STEP_COUNT,
-     healthService.HealthDataTypes.SLEEP,
-     healthService.HealthDataTypes.HEART_RATE
-   ]);
-
-   // 2) 查询（聚合数据）
-   const steps = await healthService.query(healthService.HealthDataTypes.STEP_COUNT, {
-     startTime: startOfDay,
-     endTime: Date.now(),
-     intervalType: healthService.IntervalType.ONE_DAY
-   });
-
-   // 3) 映射为 HealthObservation 并上传
-   const observations: HealthObservation[] = steps.map(item => new HealthObservation(
-     'huawei-' + item.startTime, 'steps', item.value, 'HarmonyOS Health Kit', new Date(item.startTime).toISOString()
-   ));
-   const report = await HealthSyncService.completePairing(pairingURL, token, observations);
+   import { initHealthKit } from '../common/HealthKitService';
+   // 登录后、同步前：
+   initHealthKit(getContext(this) as common.UIAbilityContext);
    ```
 
-5. 运动健康权限由 Health Kit SDK 在运行时通过 `authorize()` 申请（`requestPermissions` 中无需额外声明），前提是 AGC 控制台已开通对应数据类型。
+   注册后 `HealthSyncService.healthKitConfigured()` 自动返回 true，同步按钮切换到真实数据读取。
+4. 重新构建安装（签名证书指纹必须与 AGC 一致）：
 
-> 注意：网页配对二维码有有效期（默认 10 分钟）且配对会话一次性使用，上传需在有效期内完成。
+   ```powershell
+   D:\DevEco Studio\tools\hvigor\bin\hvigorw.bat assembleHap --no-daemon
+   ```
+
+### 三、真机验证
+
+1. 手机上安装并登录「华为运动健康」App，正常记录步数/睡眠。
+2. 打开 EviLife，进入「健康」Tab，点击「授权并同步健康数据」，首次会弹出 Health Kit 授权页。
+3. 授权后 App 显示「已从华为运动健康同步真实数据」，网页端「健康档案」可见 `connector_id=huawei_health_kit` 的记录。
+4. 若显示「未授权或今日暂无数据」：确认运动健康 App 已授权、AGC 数据权限已开通、签名指纹一致。
+
+> 注意：网页配对二维码有效期 10 分钟且一次性使用；真实数据走当前登录账号的 `observations/batch`，无需配对码。
 
 ## 关键实现说明
 
-- `ApiClient.ets`：全局复用同一个 `HttpRequest`，保留服务端会话 Cookie；设备配对 claim 后即保持网页账号登录态。
+- `ApiClient.ets`：全局复用同一个 `HttpRequest`；鸿蒙 `http` 模块不会自动回传 `Set-Cookie`（且响应头中 `set-cookie` 为数组），因此客户端在登录响应中手动捕获 `evilife_session` 并在后续请求的 `Cookie` 头中携带，登录后 `observations/batch` 等接口才会写入当前账号主体（而非 `sub-guest`）。
 - `PairingParser.ets`：与 iOS `Pairing.swift` 对齐，支持团队协议 JSON（`pairing_url` + `token`）、`code` JSON、URL 参数、URL 尾段、原始 6 位码五种格式。
 - `ScanService.ets`：基于系统扫码服务 `@kit.ScanKit`（`scanBarcode.startScanForResult`），无需额外第三方 SDK。
 - 界面：iOS 风格浅色分组背景 `#F2F2F7`、白色圆角卡片、底部标签栏、品牌青绿色 `#0F766E`。

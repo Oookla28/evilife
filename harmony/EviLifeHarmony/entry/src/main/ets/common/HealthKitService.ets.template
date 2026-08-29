@@ -1,0 +1,118 @@
+// ============================================================================
+// 华为 Health Kit（运动健康服务）真实数据读取实现 —— 模板文件
+//
+// 启用步骤：
+//   1) 本文件重命名为 HealthKitService.ets（去掉 .template 后缀）
+//   2) 在 entry/oh-package.json5 的 dependencies 中启用：
+//        "@hms.health.healthService": "<AGC 控制台给出的版本>"
+//   3) 执行 ohpm install 安装 SDK（需要 AGC 已开通 Health Kit 服务）
+//   4) 确保工程根目录有 AGC 下载的 agconnect-services.json
+//   5) 重新构建。HealthKitBridge 检测到本文件注册后，App 自动切换到真实数据
+//
+// 注意：SDK 版本不同 API 可能微调，以 AGC 控制台提供的 SDK 文档为准。
+// ============================================================================
+
+import { common } from '@kit.AbilityKit';
+import { HealthDataServiceFactory, DataType } from '@hms.health.healthService';
+import { registerHealthKitReader } from './HealthKitBridge';
+import { HealthObservation } from './HealthSyncService';
+
+/**
+ * 读取「今日」的步数 / 睡眠 / 静息心率 / 饮水并映射为 EviLife 观察。
+ * 数值字段名以 SDK 实际枚举为准（STEP_COUNT / SLEEP_DURATION /
+ * HEART_RATE_RESTING / WATER_INTAKE）。
+ */
+async function readTodayObservations(context: common.UIAbilityContext): Promise<HealthObservation[] | null> {
+  // 1) 初始化：绑定应用上下文（HMS Core 自动读取 agconnect-services.json）
+  HealthDataServiceFactory.setConsumer(context);
+
+  // 2) 数据权限申请（首次运行会弹出授权页，需在 AGC 已开通对应数据类型）
+  const healthDataService = HealthDataServiceFactory.getHealthDataService();
+  const authResult = await healthDataService.requestAuthorization({
+    dataTypes: [
+      DataType.STEP_COUNT,
+      DataType.SLEEP_DURATION,
+      DataType.HEART_RATE_RESTING,
+      DataType.WATER_INTAKE
+    ]
+  });
+  // authResult 授权失败的项需要按文档处理；此处简化：全部拒绝则返回 null
+  const granted = authResult?.result ?? authResult;
+  const ok = granted === undefined || granted === true;
+  if (!ok) {
+    return null;
+  }
+
+  // 3) 读取今日 00:00 -> 现在 的样本
+  const sampleService = HealthDataServiceFactory.getSampleDataService();
+  const now = Date.now();
+  const dayStart = new Date();
+  dayStart.setHours(0, 0, 0, 0);
+  const startTime = dayStart.getTime();
+
+  const fetchValue = async (dataType: DataType): Promise<number | null> => {
+    const samples = await sampleService.getSampleData({
+      dataType: dataType,
+      startTime: startTime,
+      endTime: now
+    });
+    const list = samples?.samples ?? samples;
+    if (Array.isArray(list) && list.length > 0) {
+      // 取最后一条（最新）样本；value 是字段值映射
+      const last = list[list.length - 1];
+      const value = last?.value;
+      if (value !== null && value !== undefined) {
+        // value 可能是 Map / Record，取第一个数值
+        if (value instanceof Map) {
+          for (const v of value.values()) {
+            if (typeof v === 'number') {
+              return v;
+            }
+          }
+        }
+        if (typeof value === 'object') {
+          for (const key of Object.keys(value)) {
+            const v = (value as Record<string, Object>)[key];
+            if (typeof v === 'number') {
+              return v;
+            }
+          }
+        }
+        if (typeof value === 'number') {
+          return value;
+        }
+      }
+    }
+    return null;
+  };
+
+  const stamp = Date.now().toString();
+  const observedAt = new Date().toISOString();
+  const observations: HealthObservation[] = [];
+
+  const steps = await fetchValue(DataType.STEP_COUNT);
+  if (steps !== null) {
+    observations.push(new HealthObservation('hk-steps-' + stamp, 'steps', steps, '华为运动健康：步数', observedAt));
+  }
+  const sleep = await fetchValue(DataType.SLEEP_DURATION);
+  if (sleep !== null) {
+    observations.push(new HealthObservation('hk-sleep-' + stamp, 'sleep_minutes', sleep, '华为运动健康：睡眠', observedAt));
+  }
+  const heartRate = await fetchValue(DataType.HEART_RATE_RESTING);
+  if (heartRate !== null) {
+    observations.push(new HealthObservation('hk-heart-' + stamp, 'resting_heart_rate', heartRate, '华为运动健康：静息心率', observedAt));
+  }
+  const water = await fetchValue(DataType.WATER_INTAKE);
+  if (water !== null) {
+    observations.push(new HealthObservation('hk-water-' + stamp, 'water_ml', water, '华为运动健康：饮水', observedAt));
+  }
+
+  return observations.length > 0 ? observations : null;
+}
+
+/** 注册到桥接层：HealthSyncService 检测到后自动使用真实数据。 */
+export function initHealthKit(context: common.UIAbilityContext): void {
+  registerHealthKitReader({
+    fetchTodayObservations: () => readTodayObservations(context)
+  });
+}
