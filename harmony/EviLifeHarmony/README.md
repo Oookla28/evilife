@@ -78,24 +78,80 @@ D:\DevEco Studio\tools\hvigor\bin\hvigorw.bat assembleHap --no-daemon
 - 完整可运行的签名脚本在仓库外（`Desktop\新建文件夹\sign-hap.ps1`，已填全部真实路径与密码），密码不提交到 Git。
 - `verify-app -inFile <signed.hap> -outCertChain <cert>.cer -outProfile <profile>.p7b` 输出 `Verify success` 仅代表签名块完整可验证，**不代表真机可安装**。
 
-## 真机运行与测试
-
 ## 真机运行与测试（Pura 70 Ultra / HarmonyOS 6.1）
 
-1. 手机开启「开发者模式 > USB 调试」，用 USB 连接电脑（选择「传输文件」模式）。
-2. 命令行安装（需先签名，否则系统拒绝安装）：
-   ```powershell
-   D:\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe install entry/build/default/outputs/default/entry-default-signed.hap
-   ```
-   或在 DevEco 中点击工具栏 Run 直接安装调试。
-3. 与后端联调：确保后端在局域网可达（默认 `http://172.20.10.10:8010` 为开发环境示例地址），在 App「设置」页修改服务器地址并保存。
-4. 功能验收清单：
-   - 登录 / 注册：邮箱 + 密码。
-   - 循证问答：提交问题，等待分级回答渲染。
-   - 扫码绑定：网页端「健康档案」页生成配对二维码（6 位码），鸿蒙端「打开相机扫码」或手动输入配对码，绑定后自动登录该网页账号；取消扫码会提示「已取消扫码」。
-   - 健康数据同步：完成下方 Health Kit 配置后授权读取并上传。
-   - 服务器地址配置：修改后重启 App 仍生效。
+### 0. 准备条件
 
+- 已用华为开发者账号登录 DevEco Studio 并完成自动签名（见上文「AGC 自动签名」），确认 `build-profile.json5` 的 `signingConfigs` 非空。
+- 后端服务在局域网可达（开发示例地址 `http://172.20.10.10:8010`）。
+
+### 1. 连接手机
+
+1. 手机开启开发者模式：设置 > 关于本机 > 连续点击「版本号」7 次；设置 > 系统与更新 > 开发人员选项 > 打开「USB 调试」。
+2. USB 连接电脑，手机弹窗选「传输文件」，在「是否允许 USB 调试」弹窗勾选「始终允许」。
+3. 验证连接（输出设备序列号即成功；`[Empty]` 表示未识别）：
+
+   ```powershell
+   D:\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe list targets
+   ```
+
+   未识别时依次尝试：换 USB 线/接口、手机上撤销 USB 调试授权后重连、确认 DevEco 的 Device File Manager 能看到手机。
+
+### 2. 构建签名 HAP
+
+- IDE：`Build > Build Hap(s)/APP(s)`，产物 `entry/build/default/outputs/default/entry-default-signed.hap`。
+- 命令行（自动签名配置写入工程后同样适用）：
+
+  ```powershell
+  $env:NODE_HOME = "D:\DevEco Studio\tools\node"; $env:JAVA_HOME = "D:\DevEco Studio\jbr"; $env:DEVECO_SDK_HOME = "D:\DevEco Studio\sdk"
+  $env:Path = "$env:NODE_HOME;$env:JAVA_HOME\bin;" + $env:Path
+  cd harmony/EviLifeHarmony
+  D:\DevEco Studio\tools\hvigor\bin\hvigorw.bat assembleHap --no-daemon
+  ```
+
+- 确认产物存在：`entry/build/default/outputs/default/entry-default-signed.hap`。
+
+### 3. 安装
+
+```powershell
+D:\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe install -r entry/build/default/outputs/default/entry-default-signed.hap
+```
+
+（`-r` 覆盖重装；也可在 DevEco 工具栏点 Run 安装调试。）
+
+安装失败排查：
+
+- `install failed due to invalid signature`：使用了本地自签 HAP 或未走 AGC 签名 → 完成自动签名后重新构建。
+- `install failed due to incompatible application`：SDK/系统版本不匹配 → 确认工程 `compatibleSdkVersion 6.0.0(20)`，Pura 70 Ultra（HarmonyOS 6.1）兼容。
+- 提示旧版本冲突：先 `hdc uninstall com.evilife.harmony` 再安装。
+
+### 4. 启动
+
+- 桌面点击应用图标；或命令行启动：
+
+  ```powershell
+  D:\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe shell aa start -a EntryAbility -b com.evilife.harmony
+  ```
+
+### 5. 查看日志
+
+```powershell
+D:\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe shell hilog | Select-String -Pattern "EviLife|ERROR"
+```
+
+### 6. 与后端联调
+
+1. 电脑防火墙放行后端端口（默认 8010），手机与电脑连同一局域网。
+2. 后端地址填电脑局域网 IP（如 `http://192.168.x.x:8010`），启动后端时确认监听 `0.0.0.0`。
+3. 在 App「设置」页修改服务器地址并保存，重启 App 后仍生效。
+
+### 7. 功能验收清单
+
+- 登录 / 注册：邮箱 + 密码。
+- 循证问答：提交问题，等待分级回答渲染。
+- 扫码绑定：网页端「健康档案」页生成配对二维码（6 位码），鸿蒙端「打开相机扫码」或手动输入配对码，绑定后自动登录该网页账号；取消扫码会提示「已取消扫码」。
+- 健康数据同步：完成下方「华为 Health Kit 接入」后授权读取并上传。
+- 服务器地址配置：修改后重启 App 仍生效。
 ## 华为 Health Kit 接入（需 AGC + SDK，当前为占位实现）
 
 后端已内置 `huawei_health_kit` 连接器（`backend/app/health_connectors.py`），鸿蒙端已实现上传协议（`HealthSyncService.completePairing`），仅差华为侧 SDK 与授权。接入步骤如下：
