@@ -47,11 +47,10 @@ func verdictLabel(_ verdict: String) -> String {
 
 func strengthLabel(_ strength: String) -> String {
     switch strength {
-    case "high": return "证据强度：高"
-    case "medium": return "证据强度：中"
-    case "moderate": return "证据强度：中"
-    case "low": return "证据强度：低"
-    default: return "证据强度：不足"
+    case "high": return "证据 高"
+    case "medium", "moderate": return "证据 中"
+    case "low": return "证据 低"
+    default: return "证据不足"
     }
 }
 

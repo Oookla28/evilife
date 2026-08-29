@@ -52,7 +52,7 @@ struct CardShell<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.footnote.weight(.semibold))
@@ -60,15 +60,14 @@ struct CardShell<Content: View>: View {
                 Text(iconTitle)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(tint)
-                    .textCase(.uppercase)
                 Spacer()
             }
             content
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(EvilifeTheme.cardBg, in: RoundedRectangle(cornerRadius: 18))
-        .overlay(RoundedRectangle(cornerRadius: 18).stroke(tint.opacity(0.22), lineWidth: 1))
+        .background(EvilifeTheme.cardBg, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(tint.opacity(0.18), lineWidth: 1))
     }
 
     private var iconTitle: String {
@@ -81,6 +80,8 @@ struct CardShell<Content: View>: View {
         case "fork.knife": return "餐食识别"
         case "timer": return "禁食计时"
         case "doc.plaintext.fill": return "文档摘要"
+        case "wand.and.stars": return "相关功能"
+        case "questionmark.square.dashed": return "内容"
         default: return "证据答案"
         }
     }
@@ -90,12 +91,12 @@ struct CardShell<Content: View>: View {
 
 struct EvidenceAnswerCard: View {
     let module: ModulePlanItem
+    @State private var detailsExpanded = false
 
     private var props: [String: JSONValue] { module.props }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header: gate + strength
             HStack(spacing: 8) {
                 if let gate = props["gate_status"]?.string, gate != "normal" {
                     Text(gate == "refused" ? "已拦截" : "降级回答")
@@ -111,94 +112,128 @@ struct EvidenceAnswerCard: View {
                         .background(EvilifeTheme.brandLight, in: Capsule())
                         .foregroundStyle(EvilifeTheme.brandDark)
                 }
-                if let topic = props["topic"]?.string {
-                    Text(topic).font(.caption2).foregroundStyle(EvilifeTheme.textTertiary).lineLimit(1)
-                }
                 Spacer()
             }
 
-            // Conclusion
             if let conclusion = props["conclusion"]?.string {
                 Text(conclusion)
                     .font(.body.weight(.semibold))
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            // Verdict
             if let verdict = props["verdict"]?.object {
-                VerdictView(verdict: verdict)
+                VerdictView(verdict: verdict, detailsExpanded: detailsExpanded)
             }
 
-            // Explanation
-            if let explanation = props["explanation"]?.string, !explanation.isEmpty {
-                section("解释") {
-                    Text(explanation).font(.subheadline).fixedSize(horizontal: false, vertical: true)
-                }
-            }
-
-            // Populations
-            let target = props["target_population"]?.stringArray ?? []
-            let nonTarget = props["non_target_population"]?.stringArray ?? []
-            if !target.isEmpty || !nonTarget.isEmpty {
-                section("适用人群") {
-                    if !target.isEmpty {
-                        ForEach(target, id: \.self) { item in
-                            bullet("checkmark.circle.fill", color: EvilifeTheme.supported, item)
-                        }
-                    }
-                    if !nonTarget.isEmpty {
-                        ForEach(nonTarget, id: \.self) { item in
-                            bullet("xmark.circle.fill", color: EvilifeTheme.partly, item)
-                        }
-                    }
-                }
-            }
-
-            // Advice
             let advice = props["general_advice"]?.stringArray ?? []
             if !advice.isEmpty {
                 section("行动建议") {
-                    ForEach(advice, id: \.self) { item in
+                    ForEach(Array(advice.prefix(2)), id: \.self) { item in
                         bullet("arrow.right.circle.fill", color: EvilifeTheme.brand, item)
                     }
                 }
             }
 
-            // Limitations
-            let limitations = props["limitations"]?.stringArray ?? []
-            if !limitations.isEmpty {
-                section("证据边界") {
-                    ForEach(limitations, id: \.self) { item in
-                        bullet("exclamationmark.triangle.fill", color: EvilifeTheme.boundary, item)
+            if hasDetails {
+                Button {
+                    withAnimation(.easeOut(duration: 0.2)) { detailsExpanded.toggle() }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(detailsExpanded ? "收起" : detailsLabel)
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                            .rotationEffect(.degrees(detailsExpanded ? 180 : 0))
                     }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(EvilifeTheme.brandDark)
                 }
-            }
+                .buttonStyle(.plain)
 
-            // TCM perspective
-            if let tcm = props["tcm_perspective"]?.object {
-                section("中医视角") {
-                    ForEach(Array(tcm.keys.sorted()), id: \.self) { key in
-                        if let value = tcm[key], !value.isNull, !value.displayText.isEmpty {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(key.replacingOccurrences(of: "_", with: " "))
-                                    .font(.caption2.weight(.semibold))
-                                    .foregroundStyle(EvilifeTheme.textTertiary)
-                                Text(value.displayText).font(.footnote)
+                if detailsExpanded {
+                    if let explanation = props["explanation"]?.string, !explanation.isEmpty {
+                        section("解释") {
+                            Text(explanation).font(.footnote).fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+
+                    let target = props["target_population"]?.stringArray ?? []
+                    let nonTarget = props["non_target_population"]?.stringArray ?? []
+                    if !target.isEmpty || !nonTarget.isEmpty {
+                        section("适用范围") {
+                            ForEach(target, id: \.self) { item in
+                                bullet("checkmark.circle.fill", color: EvilifeTheme.supported, item)
+                            }
+                            ForEach(nonTarget, id: \.self) { item in
+                                bullet("xmark.circle.fill", color: EvilifeTheme.partly, item)
                             }
                         }
                     }
+
+                    if advice.count > 2 {
+                        section("更多建议") {
+                            ForEach(Array(advice.dropFirst(2)), id: \.self) { item in
+                                bullet("arrow.right.circle.fill", color: EvilifeTheme.brand, item)
+                            }
+                        }
+                    }
+
+                    let limitations = props["limitations"]?.stringArray ?? []
+                    if !limitations.isEmpty {
+                        section("边界") {
+                            ForEach(limitations, id: \.self) { item in
+                                bullet("exclamationmark.triangle.fill", color: EvilifeTheme.boundary, item)
+                            }
+                        }
+                    }
+
+                    if let tcm = props["tcm_perspective"]?.object {
+                        section("中医视角") {
+                            ForEach(Array(tcm.keys.sorted()), id: \.self) { key in
+                                if let value = tcm[key], !value.isNull, !value.displayText.isEmpty {
+                                    Text(value.displayText).font(.footnote)
+                                }
+                            }
+                        }
+                    }
+
+                    if let citations = props["citations"]?.array, !citations.isEmpty {
+                        CitationsView(citations: citations)
+                    }
                 }
             }
-
-            // Citations
-            if let citations = props["citations"]?.array, !citations.isEmpty {
-                CitationsView(citations: citations)
-            }
         }
-        .padding(16)
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(EvilifeTheme.cardBg, in: RoundedRectangle(cornerRadius: 20))
-        .overlay(RoundedRectangle(cornerRadius: 20).stroke(EvilifeTheme.brand.opacity(0.25), lineWidth: 1))
+        .background(EvilifeTheme.cardBg, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(EvilifeTheme.brand.opacity(0.2), lineWidth: 1))
+    }
+
+    private var detailsLabel: String {
+        let count = props["citations"]?.array?.count ?? 0
+        return count > 0 ? "详情 · 来源 \(count)" : "详情"
+    }
+
+    private var hasDetails: Bool {
+        let explanation = props["explanation"]?.string ?? ""
+        return !explanation.isEmpty
+            || !(props["target_population"]?.stringArray ?? []).isEmpty
+            || !(props["non_target_population"]?.stringArray ?? []).isEmpty
+            || (props["general_advice"]?.stringArray ?? []).count > 2
+            || !(props["limitations"]?.stringArray ?? []).isEmpty
+            || props["tcm_perspective"]?.object != nil
+            || !(props["citations"]?.array ?? []).isEmpty
+            || verdictHasDetails
+    }
+
+    private var verdictHasDetails: Bool {
+        guard let verdict = props["verdict"]?.object else { return false }
+        return !(verdict["claim"]?.string ?? "").isEmpty
+            || !(verdict["supporting_evidence"]?.array ?? []).isEmpty
+            || !(verdict["opposing_evidence"]?.array ?? []).isEmpty
+            || !(verdict["applies_to"]?.stringArray ?? []).isEmpty
+            || !(verdict["does_not_apply_to"]?.stringArray ?? []).isEmpty
+            || !(verdict["uncertainty"]?.stringArray ?? []).isEmpty
+            || !(verdict["what_could_change_this_verdict"]?.stringArray ?? []).isEmpty
     }
 
     @ViewBuilder
@@ -228,7 +263,7 @@ struct EvidenceAnswerCard: View {
 
 struct VerdictView: View {
     let verdict: [String: JSONValue]
-    @State private var expanded = false
+    let detailsExpanded: Bool
 
     private var value: String { verdict["verdict"]?.string ?? "insufficient" }
 
@@ -239,43 +274,22 @@ struct VerdictView: View {
                     .font(.headline)
                     .foregroundStyle(verdictColor(value))
                 if let confidence = verdict["confidence"]?.double {
-                    Text("置信度 \(Int((confidence * 100).rounded()))%")
+                    Text("\(Int((confidence * 100).rounded()))%")
                         .font(.caption)
                         .foregroundStyle(EvilifeTheme.textSecondary)
                 }
                 Spacer()
-                if let grade = verdict["evidence_grade"]?.string {
-                    Text("证据等级 \(grade)")
-                        .font(.caption2.weight(.medium))
-                        .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(verdictColor(value).opacity(0.12), in: Capsule())
-                        .foregroundStyle(verdictColor(value))
-                }
             }
             if let reason = verdict["short_reason"]?.string {
                 Text(reason).font(.footnote).foregroundStyle(EvilifeTheme.textSecondary)
             }
-            if let claim = verdict["claim"]?.string, !claim.isEmpty {
-                Text("核验主张：\(claim)")
-                    .font(.caption)
-                    .foregroundStyle(EvilifeTheme.textTertiary)
-            }
 
-            Button {
-                withAnimation(.spring(duration: 0.3)) { expanded.toggle() }
-            } label: {
-                HStack {
-                    Text(expanded ? "收起证据明细" : "查看证据明细")
-                        .font(.caption.weight(.semibold))
-                    Image(systemName: "chevron.down")
-                        .font(.caption2)
-                        .rotationEffect(.degrees(expanded ? 180 : 0))
+            if detailsExpanded {
+                if let claim = verdict["claim"]?.string, !claim.isEmpty {
+                    Text(claim)
+                        .font(.caption)
+                        .foregroundStyle(EvilifeTheme.textTertiary)
                 }
-                .foregroundStyle(EvilifeTheme.brandDark)
-            }
-            .buttonStyle(.plain)
-
-            if expanded {
                 let supporting = verdict["supporting_evidence"]?.array ?? []
                 let opposing = verdict["opposing_evidence"]?.array ?? []
                 if !supporting.isEmpty {
@@ -305,7 +319,7 @@ struct VerdictView: View {
                 let couldChange = verdict["what_could_change_this_verdict"]?.stringArray ?? []
                 if !couldChange.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("什么可能改变该裁决").font(.caption.weight(.semibold)).foregroundStyle(EvilifeTheme.textSecondary)
+                        Text("可能改变结论").font(.caption.weight(.semibold)).foregroundStyle(EvilifeTheme.textSecondary)
                         ForEach(couldChange, id: \.self) { item in
                             Text("• \(item)").font(.caption)
                         }
@@ -313,8 +327,7 @@ struct VerdictView: View {
                 }
             }
         }
-        .padding(12)
-        .background(verdictColor(value).opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+        .padding(.vertical, 2)
     }
 
     @ViewBuilder
@@ -339,62 +352,40 @@ struct VerdictView: View {
 
 struct CitationsView: View {
     let citations: [JSONValue]
-    @State private var expanded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Button {
-                withAnimation(.spring(duration: 0.3)) { expanded.toggle() }
-            } label: {
-                HStack {
-                    Image(systemName: "link")
-                        .font(.caption)
-                    Text("引用来源（\(citations.count)）")
-                        .font(.caption.weight(.semibold))
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.caption2)
-                        .rotationEffect(.degrees(expanded ? 180 : 0))
-                }
-                .foregroundStyle(EvilifeTheme.brandDark)
+            HStack {
+                Image(systemName: "link")
+                    .font(.caption)
+                Text("来源 \(citations.count)")
+                    .font(.caption.weight(.semibold))
             }
-            .buttonStyle(.plain)
+            .foregroundStyle(EvilifeTheme.brandDark)
 
-            if expanded {
-                ForEach(citations.indices, id: \.self) { index in
-                    let citation = citations[index].object ?? [:]
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("\(citation["evidence_id"]?.string ?? "E\(index + 1)") · \(citation["title"]?.string ?? "未命名来源")")
-                            .font(.caption.weight(.medium))
-                        HStack(spacing: 6) {
-                            if let type = citation["source_type"]?.string {
-                                Text(type).font(.caption2)
-                            }
-                            if let year = citation["year"]?.int {
-                                Text(String(year)).font(.caption2)
-                            }
-                            if let org = citation["organization"]?.string {
-                                Text(org).font(.caption2).lineLimit(1)
-                            }
-                            if let channel = citation["channel"]?.string {
-                                Text(channel == "curated_database" ? "策展语料库" : "实时医学检索")
-                                    .font(.caption2.weight(.semibold))
-                                    .padding(.horizontal, 6).padding(.vertical, 1)
-                                    .background(EvilifeTheme.brandLight, in: Capsule())
-                            }
-                            Spacer()
-                            if let url = citation["url"]?.string, let link = URL(string: url) {
-                                Link(destination: link) {
-                                    Image(systemName: "arrow.up.right.square")
-                                        .font(.caption)
-                                }
+            ForEach(citations.indices, id: \.self) { index in
+                let citation = citations[index].object ?? [:]
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("\(citation["evidence_id"]?.string ?? "E\(index + 1)") · \(citation["title"]?.string ?? "未命名来源")")
+                        .font(.caption.weight(.medium))
+                    HStack(spacing: 6) {
+                        if let year = citation["year"]?.int {
+                            Text(String(year)).font(.caption2)
+                        }
+                        if let org = citation["organization"]?.string {
+                            Text(org).font(.caption2).lineLimit(1)
+                        }
+                        Spacer()
+                        if let url = citation["url"]?.string, let link = URL(string: url) {
+                            Link(destination: link) {
+                                Image(systemName: "arrow.up.right.square")
+                                    .font(.caption)
                             }
                         }
-                        .foregroundStyle(EvilifeTheme.textSecondary)
                     }
-                    .padding(8)
-                    .background(EvilifeTheme.pageBg, in: RoundedRectangle(cornerRadius: 10))
+                    .foregroundStyle(EvilifeTheme.textSecondary)
                 }
+                .padding(.vertical, 3)
             }
         }
     }
@@ -428,10 +419,6 @@ struct GeneralAnswerCardView: View {
             if let answer = module.props["answer"]?.string {
                 Text(answer).font(.footnote).fixedSize(horizontal: false, vertical: true)
             }
-            if let reason = module.props["classification_reason"]?.string {
-                Text("分类依据：\(reason)")
-                    .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
-            }
             let points = module.props["key_points"]?.stringArray ?? []
             if !points.isEmpty {
                 ForEach(points, id: \.self) { point in
@@ -443,8 +430,13 @@ struct GeneralAnswerCardView: View {
             }
             let limitations = module.props["limitations"]?.stringArray ?? []
             if !limitations.isEmpty {
-                Text("边界：\(limitations.joined(separator: "；"))")
-                    .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
+                DisclosureGroup("边界") {
+                    ForEach(limitations, id: \.self) { item in
+                        Text(item)
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(EvilifeTheme.textTertiary)
             }
             if let boundary = module.props["boundary_label"]?.string {
                 Text(boundary)
@@ -545,7 +537,6 @@ struct DraftItem: Identifiable {
     let label: String
     let unit: String
     var value: Double
-    let sourceText: String
 }
 
 struct HealthRecordDraftCard: View {
@@ -562,19 +553,12 @@ struct HealthRecordDraftCard: View {
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(EvilifeTheme.brand)
             } else {
-                Text("发现可添加的健康记录（来自你的描述，非 AI 测量值）。确认前不会写入健康档案。")
+                Text("确认后写入健康档案。")
                     .font(.caption)
                     .foregroundStyle(EvilifeTheme.textSecondary)
                 ForEach($drafts) { $draft in
                     HStack(spacing: 8) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(draft.label).font(.footnote.weight(.medium))
-                            if !draft.sourceText.isEmpty {
-                                Text("来自「\(draft.sourceText)」")
-                                    .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
-                                    .lineLimit(1)
-                            }
-                        }
+                        Text(draft.label).font(.footnote.weight(.medium))
                         Spacer()
                         TextField("数值", value: $draft.value, format: .number)
                             .keyboardType(.decimalPad)
@@ -594,7 +578,7 @@ struct HealthRecordDraftCard: View {
                     if saving {
                         ProgressView().frame(maxWidth: .infinity)
                     } else {
-                        Text("确认并添加（\(drafts.count) 条）").frame(maxWidth: .infinity)
+                        Text("添加 \(drafts.count) 条").frame(maxWidth: .infinity)
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -617,8 +601,7 @@ struct HealthRecordDraftCard: View {
                 kind: kind,
                 label: object["label"]?.string ?? observationKindLabel(kind),
                 unit: object["unit"]?.string ?? observationUnit(kind),
-                value: value,
-                sourceText: object["source_text"]?.string ?? "")
+                value: value)
         }
     }
 
@@ -681,7 +664,7 @@ struct MealAnalyzerCard: View {
                         .padding(.top, 4)
                     }
                     if let uncertainty = module.props["overall_uncertainty"]?.string, !uncertainty.isEmpty {
-                        Text("估算不确定性：\(uncertainty)")
+                        Text("估算：\(uncertainty)")
                             .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
                     }
                     if !errorMessage.isEmpty {
@@ -693,11 +676,11 @@ struct MealAnalyzerCard: View {
                         if saving {
                             ProgressView().frame(maxWidth: .infinity)
                         } else {
-                            Text("确认并保存餐食记录").frame(maxWidth: .infinity)
+                            Text("保存记录").frame(maxWidth: .infinity)
                         }
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(.orange)
+                    .tint(EvilifeTheme.brand)
                     .disabled(saving)
                 }
             }
@@ -770,10 +753,8 @@ struct FastingTimerCard: View {
     let module: ModulePlanItem
 
     var body: some View {
-        CardShell(tint: .purple, icon: "timer") {
-            Text("禁食计时")
-                .font(.subheadline.weight(.semibold))
-            Text("打开「今日」标签页即可开始 16:8 禁食计时，或记录饮水、步数等日常指标。")
+        CardShell(tint: EvilifeTheme.brand, icon: "timer") {
+            Text("去「今日」开始计时。")
                 .font(.footnote).foregroundStyle(EvilifeTheme.textSecondary)
         }
     }
@@ -783,7 +764,7 @@ struct DocumentSummaryCard: View {
     let module: ModulePlanItem
 
     var body: some View {
-        CardShell(tint: .indigo, icon: "doc.plaintext.fill") {
+        CardShell(tint: EvilifeTheme.brand, icon: "doc.plaintext.fill") {
             if let name = module.props["document_name"]?.string {
                 Text(name).font(.subheadline.weight(.semibold))
             }
@@ -791,18 +772,19 @@ struct DocumentSummaryCard: View {
                 Text(summary).font(.footnote).fixedSize(horizontal: false, vertical: true)
             }
             let points = module.props["key_points"]?.stringArray ?? []
-            if !points.isEmpty {
-                ForEach(points, id: \.self) { point in
-                    Text("• \(point)").font(.caption)
-                }
-            }
             let claims = module.props["detailed_claims"]?.array ?? []
-            if !claims.isEmpty {
-                ForEach(claims.indices, id: \.self) { index in
-                    if let text = claims[index].object?["claim"]?.string {
-                        Text("\(index + 1). \(text)").font(.caption)
+            if !points.isEmpty || !claims.isEmpty {
+                DisclosureGroup("详情") {
+                    ForEach(points, id: \.self) { point in
+                        Text(point).font(.caption)
+                    }
+                    ForEach(claims.indices, id: \.self) { index in
+                        if let text = claims[index].object?["claim"]?.string {
+                            Text(text).font(.caption)
+                        }
                     }
                 }
+                .font(.caption)
             }
         }
     }
@@ -815,7 +797,7 @@ struct ChatFeaturePanelCard: View {
         CardShell(tint: EvilifeTheme.partly, icon: "wand.and.stars") {
             Text(module.props["title"]?.string ?? "功能建议")
                 .font(.subheadline.weight(.semibold))
-            Text("你可以在「今日」与「健康」标签页使用相关功能。")
+            Text("前往「今日」或「健康」。")
                 .font(.footnote).foregroundStyle(EvilifeTheme.textSecondary)
         }
     }
@@ -826,7 +808,7 @@ struct UnknownModuleCard: View {
 
     var body: some View {
         CardShell(tint: EvilifeTheme.textTertiary, icon: "questionmark.square.dashed") {
-            Text("模块：\(module.type)")
+            Text("暂无法显示此内容")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(EvilifeTheme.textTertiary)
         }

@@ -7,12 +7,18 @@ struct TodayView: View {
     var body: some View {
         NavigationStack {
             List {
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .font(.footnote)
+                        .foregroundStyle(EvilifeTheme.riskRefused)
+                }
                 fastingSection
                 mealsSection
                 observationsSection
             }
             .listStyle(.insetGrouped)
             .navigationTitle("今日")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     DatePicker("日期", selection: $viewModel.selectedDate, displayedComponents: .date)
@@ -23,8 +29,9 @@ struct TodayView: View {
                     Button {
                         viewModel.showRecordSheet = true
                     } label: {
-                        Label("记录", systemImage: "plus.circle.fill")
+                        Image(systemName: "plus")
                     }
+                    .accessibilityLabel("添加记录")
                 }
             }
             .sheet(isPresented: $viewModel.showRecordSheet) {
@@ -48,10 +55,10 @@ struct TodayView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "timer")
-                            .foregroundStyle(.purple)
-                        Text("进行中的禁食").font(.subheadline.weight(.semibold))
+                            .foregroundStyle(EvilifeTheme.brand)
+                        Text("禁食中").font(.subheadline.weight(.semibold))
                         Spacer()
-                        Text("目标 \(active.goal_hours.formatted(.number.precision(.fractionLength(0...1)))) 小时")
+                        Text("\(active.goal_hours.formatted(.number.precision(.fractionLength(0...1))))h")
                             .font(.caption)
                             .foregroundStyle(EvilifeTheme.textSecondary)
                     }
@@ -59,12 +66,12 @@ struct TodayView: View {
                         let elapsed = Date().timeIntervalSince(start)
                         let progress = min(elapsed / (active.goal_hours * 3600), 1.5)
                         ProgressView(value: progress)
-                            .tint(.purple)
+                            .tint(EvilifeTheme.brand)
                         Text(elapsedText(elapsed))
                             .font(.footnote.monospacedDigit())
                             .foregroundStyle(EvilifeTheme.textSecondary)
                     }
-                    Button("结束禁食", role: .destructive) {
+                    Button("结束", role: .destructive) {
                         Task { await viewModel.endFast(active.id) }
                     }
                     .font(.footnote)
@@ -74,8 +81,8 @@ struct TodayView: View {
                     Task { await viewModel.startFast() }
                 } label: {
                     HStack {
-                        Image(systemName: "timer").foregroundStyle(.purple)
-                        Text("开始 16 小时禁食")
+                        Image(systemName: "timer").foregroundStyle(EvilifeTheme.brand)
+                        Text("开始 16h")
                         Spacer()
                         if viewModel.busy { ProgressView().controlSize(.small) }
                     }
@@ -83,14 +90,19 @@ struct TodayView: View {
                 .disabled(viewModel.busy)
             }
             let completed = viewModel.summary?.fasts.filter { $0.status != "active" } ?? []
-            ForEach(completed) { fast in
-                HStack {
-                    Text("\(ISODate.localShort(fast.start_at)) 起")
-                    Spacer()
-                    Text("\(fast.goal_hours.formatted(.number.precision(.fractionLength(0...1)))) 小时")
+            if !completed.isEmpty {
+                DisclosureGroup("已完成 \(completed.count)") {
+                    ForEach(completed) { fast in
+                        HStack {
+                            Text(ISODate.localShort(fast.start_at))
+                            Spacer()
+                            Text("\(fast.goal_hours.formatted(.number.precision(.fractionLength(0...1))))h")
+                        }
+                        .font(.footnote)
+                        .foregroundStyle(EvilifeTheme.textSecondary)
+                    }
                 }
                 .font(.footnote)
-                .foregroundStyle(EvilifeTheme.textSecondary)
             }
         }
     }
@@ -98,7 +110,7 @@ struct TodayView: View {
     private func elapsedText(_ elapsed: TimeInterval) -> String {
         let hours = Int(elapsed) / 3600
         let minutes = (Int(elapsed) % 3600) / 60
-        return String(format: "已进行 %d 小时 %02d 分钟", hours, minutes)
+        return String(format: "%d 小时 %02d 分", hours, minutes)
     }
 
     // MARK: Meals
@@ -107,12 +119,22 @@ struct TodayView: View {
         Section("餐食") {
             let meals = viewModel.summary?.meals ?? []
             if meals.isEmpty {
-                Text("今天还没有餐食记录。在问答里发送餐食照片即可自动识别并保存。")
+                Text("暂无餐食 · 可在问答上传照片")
                     .font(.footnote)
                     .foregroundStyle(EvilifeTheme.textTertiary)
             }
             ForEach(meals) { meal in
-                VStack(alignment: .leading, spacing: 4) {
+                DisclosureGroup {
+                    if let items = meal.items {
+                        ForEach(items) { item in
+                            HStack {
+                                Text(item.name).font(.footnote)
+                                Spacer()
+                                Text(item.portion).font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
+                            }
+                        }
+                    }
+                } label: {
                     HStack {
                         Text("\(meal.items?.count ?? 0) 项 · \(ISODate.time(meal.created_at))")
                             .font(.caption.weight(.semibold))
@@ -124,15 +146,6 @@ struct TodayView: View {
                                 .foregroundStyle(.orange)
                         }
                     }
-                    if let items = meal.items {
-                        ForEach(items) { item in
-                            HStack {
-                                Text(item.name).font(.footnote)
-                                Spacer()
-                                Text(item.portion).font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -141,10 +154,10 @@ struct TodayView: View {
     // MARK: Observations
 
     private var observationsSection: some View {
-        Section("健康记录") {
+        Section("记录") {
             let observations = viewModel.summary?.observations ?? []
             if observations.isEmpty {
-                Text("今天还没有记录。点右上角 + 快速添加饮水、步数、体重等。")
+                Text("暂无记录")
                     .font(.footnote)
                     .foregroundStyle(EvilifeTheme.textTertiary)
             }
@@ -156,7 +169,10 @@ struct TodayView: View {
                     Text(observationKindLabel(record.kind)).font(.subheadline)
                     Spacer()
                     if record.kind == "note" {
-                        Text(record.note ?? "").font(.caption).foregroundStyle(EvilifeTheme.textSecondary)
+                        Text(record.note ?? "")
+                            .font(.caption)
+                            .foregroundStyle(EvilifeTheme.textSecondary)
+                            .lineLimit(1)
                     } else if let value = record.value {
                         Text("\(value.formatted(.number.precision(.fractionLength(0...2)))) \(observationUnit(record.kind))")
                             .font(.subheadline.monospacedDigit().weight(.medium))
@@ -280,34 +296,37 @@ struct ObservationSheet: View {
     @State private var errorMessage = ""
 
     private let kinds: [(String, String)] = [
-        ("water_ml", "饮水 (ml)"),
-        ("steps", "步数 (步)"),
-        ("sleep_minutes", "睡眠 (分钟)"),
-        ("weight_kg", "体重 (kg)"),
-        ("waist_cm", "腰围 (cm)"),
-        ("resting_heart_rate", "静息心率 (次/分)"),
-        ("mood_score", "心情 (1–5)"),
+        ("water_ml", "饮水"),
+        ("steps", "步数"),
+        ("sleep_minutes", "睡眠"),
+        ("weight_kg", "体重"),
+        ("waist_cm", "腰围"),
+        ("resting_heart_rate", "静息心率"),
+        ("mood_score", "心情"),
         ("note", "备注"),
     ]
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("类型") {
-                    Picker("类型", selection: $kind) {
+                Section {
+                    Picker("项目", selection: $kind) {
                         ForEach(kinds, id: \.0) { item in
                             Text(item.1).tag(item.0)
                         }
                     }
                     .pickerStyle(.menu)
-                }
-                Section("数值") {
                     if kind == "note" {
-                        TextField("写点什么…", text: $note, axis: .vertical)
+                        TextField("备注", text: $note, axis: .vertical)
                             .lineLimit(2...6)
                     } else {
-                        TextField(placeholder, text: $valueText)
-                            .keyboardType(kind == "mood_score" ? .numberPad : .decimalPad)
+                        HStack {
+                            TextField(placeholder, text: $valueText)
+                                .keyboardType(kind == "mood_score" ? .numberPad : .decimalPad)
+                            Text(observationUnit(kind))
+                                .font(.footnote)
+                                .foregroundStyle(EvilifeTheme.textTertiary)
+                        }
                     }
                 }
                 if !errorMessage.isEmpty {
@@ -322,17 +341,13 @@ struct ObservationSheet: View {
                         if saving {
                             ProgressView().frame(maxWidth: .infinity)
                         } else {
-                            Text("保存记录").frame(maxWidth: .infinity)
+                            Text("保存").frame(maxWidth: .infinity)
                         }
                     }
                     .disabled(saving || (!isValid && kind != "note") || (kind == "note" && note.isEmpty))
                 }
-                Section {
-                    Text("这些是本人主动记录，不是 AI 测量值。")
-                        .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
-                }
             }
-            .navigationTitle("快速记录")
+            .navigationTitle("记录")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

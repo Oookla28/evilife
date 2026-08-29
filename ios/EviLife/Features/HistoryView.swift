@@ -9,37 +9,27 @@ struct HistoryView: View {
     var body: some View {
         NavigationStack {
             List {
-                if !appState.isLoggedIn {
-                    Section {
-                        Text("登录后可在多设备间同步问答历史；游客模式的对话只保存在本机。")
-                            .font(.footnote).foregroundStyle(EvilifeTheme.textSecondary)
-                    }
-                }
                 if !errorMessage.isEmpty {
-                    Section {
-                        Text(errorMessage).font(.footnote).foregroundStyle(EvilifeTheme.riskRefused)
-                    }
+                    Text(errorMessage).font(.footnote).foregroundStyle(EvilifeTheme.riskRefused)
                 }
-                Section("历史对话") {
-                    if loading {
-                        HStack { Spacer(); ProgressView(); Spacer() }
-                    } else if conversations.isEmpty {
-                        Text("暂无历史对话。").font(.footnote).foregroundStyle(EvilifeTheme.textTertiary)
-                    }
-                    ForEach(conversations) { conversation in
-                        NavigationLink {
-                            ConversationDetailView(conversation: conversation)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(conversation.title).font(.subheadline)
-                                Text("\(conversation.messages.count) 条消息 · \(ISODate.localShort(conversation.updated_at))")
-                                    .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
-                            }
+                if loading {
+                    HStack { Spacer(); ProgressView(); Spacer() }
+                } else if conversations.isEmpty {
+                    Text("暂无记录").font(.footnote).foregroundStyle(EvilifeTheme.textTertiary)
+                }
+                ForEach(conversations) { conversation in
+                    NavigationLink {
+                        ConversationDetailView(conversation: conversation)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(conversation.title).font(.subheadline)
+                            Text(ISODate.localShort(conversation.updated_at))
+                                .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
                         }
-                        .swipeActions {
-                            Button("删除", role: .destructive) {
-                                Task { await delete(conversation) }
-                            }
+                    }
+                    .swipeActions {
+                        Button("删除", role: .destructive) {
+                            Task { await delete(conversation) }
                         }
                     }
                 }

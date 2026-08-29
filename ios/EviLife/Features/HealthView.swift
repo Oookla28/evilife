@@ -6,9 +6,10 @@ struct HealthView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var sync = HealthKitSyncService()
     @State private var profile: ProfileAnalysisResponse?
-    @State private var connectors: [HealthConnector] = []
     @State private var analyzing = false
     @State private var errorMessage = ""
+    @State private var showReports = false
+    @State private var showSettings = false
 
     @State private var showScanner = false
     @State private var pairingBusy = false
@@ -31,17 +32,24 @@ struct HealthView: View {
     var body: some View {
         NavigationStack {
             List {
-                pairingSection
-                healthKitSection
-                importSection
                 profileSection
-                connectorsSection
-                disclaimerSection
+                healthKitSection
+                pairingSection
+                importSection
             }
             .listStyle(.insetGrouped)
             .navigationTitle("健康")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showSettings = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                    .accessibilityLabel("设置")
+                }
+            }
             .task {
-                await loadConnectors()
                 await loadSyncedStats()
                 await sync.refreshAccessState()
             }
@@ -60,14 +68,14 @@ struct HealthView: View {
                         .ignoresSafeArea()
                         VStack {
                             Spacer()
-                            Text("将网页端的配对二维码对准取景框")
+                            Text("扫描网页端二维码")
                                 .font(.footnote.weight(.medium))
                                 .padding(.horizontal, 14).padding(.vertical, 8)
                                 .background(.regularMaterial, in: Capsule())
                                 .padding(.bottom, 40)
                         }
                     }
-                    .navigationTitle("扫码绑定网页端")
+                    .navigationTitle("扫描二维码")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
@@ -76,6 +84,8 @@ struct HealthView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showReports) { ReportsView() }
+            .sheet(isPresented: $showSettings) { SettingsView() }
             .fileImporter(
                 isPresented: $showXMLImporter,
                 allowedContentTypes: [.xml, .data],
@@ -105,24 +115,22 @@ struct HealthView: View {
                     Image(systemName: "qrcode.viewfinder")
                         .font(.title3)
                         .foregroundStyle(EvilifeTheme.brand)
-                    Text("网页端同步")
-                        .font(.subheadline.weight(.semibold))
-                    Spacer()
                     if let user = appState.user {
-                        Text("已绑定").font(.caption2.weight(.bold))
+                        Text(user.email)
+                            .font(.subheadline.weight(.medium))
+                            .lineLimit(1)
+                    } else {
+                        Text("尚未连接")
+                            .font(.subheadline)
+                            .foregroundStyle(EvilifeTheme.textSecondary)
+                    }
+                    Spacer()
+                    if appState.user != nil {
+                        Text("已连接").font(.caption2.weight(.bold))
                             .padding(.horizontal, 8).padding(.vertical, 3)
                             .background(EvilifeTheme.brandLight, in: Capsule())
                             .foregroundStyle(EvilifeTheme.brandDark)
                     }
-                }
-                if let user = appState.user {
-                    Text("账号：\(user.email)（\(user.display_name)）。手机 HealthKit（含 Apple Watch 手表数据）同步将写入该账号，网页端登录同一账号即可看到。")
-                        .font(.caption)
-                        .foregroundStyle(EvilifeTheme.textSecondary)
-                } else {
-                    Text("网页端登录后生成配对二维码，手机扫码即绑定同一账号；之后手表/健康数据同步到账号，网页端直接可见。")
-                        .font(.caption)
-                        .foregroundStyle(EvilifeTheme.textSecondary)
                 }
                 if pairingBusy {
                     HStack(spacing: 8) {
@@ -139,46 +147,49 @@ struct HealthView: View {
                 Button {
                     showScanner = true
                 } label: {
-                    Label(appState.user != nil ? "重新扫码绑定" : "扫码绑定网页端", systemImage: "qrcode")
+                    Text(appState.user != nil ? "重新连接" : "连接")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(EvilifeTheme.brand)
                 .disabled(pairingBusy)
 
-                HStack(spacing: 8) {
-                    TextField("或手动输入配对码", text: $manualCode)
-                        .textInputAutocapitalization(.characters)
-                        .autocorrectionDisabled()
-                        .padding(.horizontal, 10).padding(.vertical, 8)
-                        .background(EvilifeTheme.cardBg, in: RoundedRectangle(cornerRadius: 10))
-                    Button("绑定") {
-                        let code = manualCode.uppercased().filter { $0.isLetter || $0.isNumber }
-                        guard (4...16).contains(code.count) else { return }
-                        manualCode = ""
-                        pairingError = ""
-                        pairingMessage = ""
-                        pendingPayload = PairingPayload(code: code, baseURL: nil, pairingURL: nil, token: nil, connectorID: nil)
-                        showPairingChoice = true
+                DisclosureGroup("输入配对码") {
+                    HStack(spacing: 8) {
+                        TextField("配对码", text: $manualCode)
+                            .textInputAutocapitalization(.characters)
+                            .autocorrectionDisabled()
+                            .padding(.horizontal, 10).padding(.vertical, 8)
+                            .background(EvilifeTheme.cardBg, in: RoundedRectangle(cornerRadius: 10))
+                        Button("绑定") {
+                            let code = manualCode.uppercased().filter { $0.isLetter || $0.isNumber }
+                            guard (4...16).contains(code.count) else { return }
+                            manualCode = ""
+                            pairingError = ""
+                            pairingMessage = ""
+                            pendingPayload = PairingPayload(code: code, baseURL: nil, pairingURL: nil, token: nil, connectorID: nil)
+                            showPairingChoice = true
+                        }
+                        .disabled(pairingBusy || manualCode.uppercased().filter { $0.isLetter || $0.isNumber }.count < 4)
                     }
-                    .disabled(pairingBusy || manualCode.uppercased().filter { $0.isLetter || $0.isNumber }.count < 4)
                 }
+                .font(.footnote)
 
                 transferSection
                 webSyncSection
             }
         } header: {
-            Text("与网页端同步")
+            Text("网页同步")
         } footer: {
-            Text("配对码一次性有效，5 分钟内使用。绑定并登录＝手机登录为该账号；仅传输数据＝保留手机当前登录，把健康/手表数据传到对方账号。只扫描自己信任的二维码。")
+            Text("配对码 5 分钟有效。仅扫描可信二维码。")
         }
         .confirmationDialog("选择配对方式", isPresented: $showPairingChoice, titleVisibility: .visible) {
-            Button("绑定并登录该账号") {
+            Button("绑定并登录") {
                 if let payload = pendingPayload {
                     Task { await claim(code: payload.code ?? "", fallbackBase: payload.baseURL, mode: "login") }
                 }
             }
-            Button("仅传输数据到该账号（保留当前登录）") {
+            Button("仅传输数据") {
                 if let payload = pendingPayload {
                     Task { await claim(code: payload.code ?? "", fallbackBase: payload.baseURL, mode: "transfer") }
                 }
@@ -195,14 +206,11 @@ struct HealthView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
                     Image(systemName: "globe.asia.australia.fill")
-                        .foregroundStyle(.blue)
-                    Text("已连接网页端（\(link.dataURL)）")
+                        .foregroundStyle(EvilifeTheme.brand)
+                    Text("网页端已连接")
                         .font(.footnote.weight(.medium))
-                        .lineLimit(2)
+                        .lineLimit(1)
                 }
-                Text("点下面按钮把 HealthKit（含 Apple Watch 手表）聚合数据上传到该网页端。")
-                    .font(.caption)
-                    .foregroundStyle(EvilifeTheme.textSecondary)
                 if webSyncing {
                     HStack(spacing: 8) {
                         ProgressView().controlSize(.small)
@@ -213,11 +221,11 @@ struct HealthView: View {
                     Button {
                         Task { await syncToWeb(link: link) }
                     } label: {
-                        Label("上传手表数据到网页端", systemImage: "icloud.and.arrow.up.fill")
+                        Label("同步", systemImage: "icloud.and.arrow.up.fill")
                             .font(.footnote.weight(.medium))
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(.blue)
+                    .tint(EvilifeTheme.brand)
                     .disabled(webSyncing || sync.syncing)
                     Button("断开") {
                         WebSyncLinkStore.save(nil)
@@ -237,7 +245,7 @@ struct HealthView: View {
             let observations = try await sync.buildObservations(days: 30)
             let result = try await WebSyncClient.upload(
                 dataURL: link.dataURL, token: link.token, observations: observations)
-            pairingMessage = "已上传 \(result.accepted) 条手表健康数据到网页端（累计 \(result.total) 条）。"
+            pairingMessage = "已同步 \(result.accepted) 条"
             pairingError = ""
         } catch {
             pairingError = error.localizedDescription
@@ -251,11 +259,11 @@ struct HealthView: View {
             let link = try await WebSyncClient.pair(url: url)
             WebSyncLinkStore.save(WebSyncLink(token: link.token, dataURL: link.dataURL, savedAt: Date()))
             pairingError = ""
-            pairingMessage = "已与网页端配对。正在上传手表健康数据…"
+            pairingMessage = "已连接，正在同步…"
             let observations = try await sync.buildObservations(days: 30)
             let result = try await WebSyncClient.upload(
                 dataURL: link.dataURL, token: link.token, observations: observations)
-            pairingMessage = "已与网页端配对并上传 \(result.accepted) 条手表健康数据（累计 \(result.total) 条）。"
+            pairingMessage = "已同步 \(result.accepted) 条"
         } catch {
             pairingError = error.localizedDescription
         }
@@ -270,12 +278,9 @@ struct HealthView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.left.arrow.right.circle.fill")
                         .foregroundStyle(EvilifeTheme.partly)
-                    Text("传输目标：\(link.targetEmail)（\(link.targetName)）")
+                    Text("传输到 \(link.targetEmail)")
                         .font(.footnote.weight(.medium))
                 }
-                Text("你的账号登录不受影响；点下面按钮会把 HealthKit（含手表）数据传到该账号，网页端用该账号登录即可看到。")
-                    .font(.caption)
-                    .foregroundStyle(EvilifeTheme.textSecondary)
                 if transferring {
                     HStack(spacing: 8) {
                         ProgressView().controlSize(.small)
@@ -286,7 +291,7 @@ struct HealthView: View {
                     Button {
                         Task { await syncAndTransfer(link: link) }
                     } label: {
-                        Label("同步并传输手表数据", systemImage: "arrow.right.circle.fill")
+                        Label("传输", systemImage: "arrow.right.circle.fill")
                             .font(.footnote.weight(.medium))
                     }
                     .buttonStyle(.borderedProminent)
@@ -312,7 +317,7 @@ struct HealthView: View {
                 token: link.token,
                 consentReceipt: "healthkit-transfer-\(UUID().uuidString)",
                 observations: observations)
-            pairingMessage = "已把 \(response.accepted) 条记录传输到 \(link.targetEmail)（跳过 \(response.skipped) 条）。"
+            pairingMessage = "已传输 \(response.accepted) 条"
             pairingError = ""
         } catch {
             pairingError = error.localizedDescription
@@ -328,7 +333,7 @@ struct HealthView: View {
         pairingMessage = ""
         guard let payload = PairingParser.parse(raw) else {
             let preview = String(raw.prefix(60))
-            pairingError = "无法识别的二维码内容：\(preview)（请确认扫的是 EviLife 网页端的配对二维码）"
+            pairingError = "无法识别二维码：\(preview)"
             return
         }
         // 团队协议：{"pairing_url": "…", "token": "…", "connector_id": "…"} → 直接配对并上传
@@ -350,16 +355,39 @@ struct HealthView: View {
         defer { pairingBusy = false }
         do {
             pairingError = ""
-            pairingMessage = "已扫码，正在上传手表健康数据…"
+            pairingMessage = "正在同步…"
             let observations = try await sync.buildObservations(days: syncDays)
-            let result = try await WebSyncClient.completePairing(
-                pairingURL: url, token: token, connectorID: connectorID,
-                observations: observations)
-            pairingMessage = "配对完成：新增 \(result.accepted) 条、跳过 \(result.skipped) 条，网页端已能看到手表数据。"
+            var result: (accepted: Int, skipped: Int)
+            do {
+                result = try await WebSyncClient.completePairing(
+                    pairingURL: url, token: token, connectorID: connectorID,
+                    observations: observations)
+            } catch {
+                // 二维码里的地址手机不可达（如 127.0.0.1）时，改用当前可用后端 + 原路径重试
+                guard let fallback = rewrittenPairingURL(url), fallback != url else { throw error }
+                result = try await WebSyncClient.completePairing(
+                    pairingURL: fallback, token: token, connectorID: connectorID,
+                    observations: observations)
+            }
+            pairingMessage = "已连接 · 新增 \(result.accepted) 条"
             await loadSyncedStats()
         } catch {
             pairingError = error.localizedDescription
         }
+    }
+
+    /// 把 127.0.0.1/localhost 的 pairing_url 改写成当前可用后端地址（路径不变）。
+    private func rewrittenPairingURL(_ original: String) -> String? {
+        guard let components = URLComponents(string: original),
+              let host = components.host,
+              (host == "127.0.0.1" || host == "localhost"),
+              let base = URLComponents(string: AppConfig.baseURL),
+              let baseHost = base.host else { return nil }
+        var copy = components
+        copy.scheme = base.scheme
+        copy.host = baseHost
+        copy.port = base.port
+        return copy.string
     }
 
     private func claim(code: String, fallbackBase: String? = nil, mode: String = "login") async {
@@ -394,11 +422,11 @@ struct HealthView: View {
                 targetEmail: target.email,
                 targetName: target.display_name,
                 expiresAt: expiresAt))
-            pairingMessage = "已连接传输目标 \(target.email)（24 小时内有效）。点「同步并传输手表数据」即可跨账号传输。"
+            pairingMessage = "已连接 \(target.email) · 24 小时有效"
             pairingError = ""
         } else if let user = response.user {
             appState.user = user
-            pairingMessage = "已绑定 \(user.email)。授权 HealthKit 并点下方「同步最近 30 天数据」，手表数据就会出现在网页端。"
+            pairingMessage = "已绑定 \(user.email)"
             pairingError = ""
         } else {
             pairingError = "服务器响应无法解析"
@@ -414,45 +442,20 @@ struct HealthView: View {
                     HStack {
                         Image(systemName: "heart.text.square.fill")
                             .font(.title3)
-                            .foregroundStyle(.pink)
-                        Text("Apple 健康 + 手表同步")
-                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(EvilifeTheme.brand)
+                        Text("步数 · 睡眠 · 心率 · 体重")
+                            .font(.subheadline)
+                            .foregroundStyle(EvilifeTheme.textSecondary)
                         Spacer()
                         if sync.isAuthorized {
                             Text("已授权").font(.caption2.weight(.bold))
                                 .padding(.horizontal, 8).padding(.vertical, 3)
                                 .background(EvilifeTheme.brandLight, in: Capsule())
-                                .foregroundStyle(EvilifeTheme.brandDark)
+                            .foregroundStyle(EvilifeTheme.brandDark)
                         }
-                    }
-                    Text("EviLife 只读取你逐类授权的步数、睡眠、静息心率与体重聚合值。Apple Watch 数据先写入 iPhone 健康，随 HealthKit 一并同步（手表来源样本不单独区分）。")
-                        .font(.caption)
-                        .foregroundStyle(EvilifeTheme.textSecondary)
-                    HStack(spacing: 10) {
-                        ForEach(["steps", "sleep_minutes", "resting_heart_rate", "weight_kg"], id: \.self) { kind in
-                            Text(observationKindLabel(kind))
-                                .font(.caption2)
-                                .padding(.horizontal, 8).padding(.vertical, 3)
-                                .background(EvilifeTheme.pageBg, in: Capsule())
-                                .foregroundStyle(EvilifeTheme.textSecondary)
-                        }
-                        Spacer()
-                    }
-                    if sync.accessRequested {
-                        Text("读取授权状态受系统隐私保护，无法逐类查看；如查询无数据，可能是读取被拒绝或健康里暂无手表数据。")
-                            .font(.caption2)
-                            .foregroundStyle(EvilifeTheme.textTertiary)
-                        Button {
-                            openAppSettings()
-                        } label: {
-                            Label("检查系统健康权限", systemImage: "gearshape.2")
-                                .font(.footnote.weight(.medium))
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
                     }
                     if sync.isAuthorized {
-                        HStack {
+                        HStack(spacing: 12) {
                             Menu {
                                 Picker("同步范围", selection: $syncDays) {
                                     Text("最近 7 天").tag(7)
@@ -460,13 +463,15 @@ struct HealthView: View {
                                     Text("最近 90 天").tag(90)
                                 }
                             } label: {
-                                HStack(spacing: 4) {
-                                    Text("范围")
-                                    Text("\(syncDays) 天").foregroundStyle(.pink)
-                                }
+                                Text("\(syncDays) 天")
                                 .font(.footnote.weight(.medium))
+                                .foregroundStyle(EvilifeTheme.brandDark)
                             }
                             Spacer()
+                            if sync.accessRequested {
+                                Button("权限") { openAppSettings() }
+                                    .font(.footnote)
+                            }
                         }
                         Button {
                             Task { await syncNow() }
@@ -474,17 +479,17 @@ struct HealthView: View {
                             HStack {
                                 if sync.syncing {
                                     ProgressView().controlSize(.small)
-                                    Text("正在同步…").font(.footnote)
+                                    Text("同步中…").font(.footnote)
                                 } else {
-                                    Text("同步最近 \(syncDays) 天数据（含手表）").frame(maxWidth: .infinity)
+                                    Text("同步").frame(maxWidth: .infinity)
                                 }
                             }
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(.pink)
+                        .tint(EvilifeTheme.brand)
                         .disabled(sync.syncing)
                         if let lastSync = sync.lastSyncAt {
-                            Text("上次同步：\(lastSync.formatted(date: .abbreviated, time: .shortened))，新增 \(sync.lastAccepted) 条、跳过 \(sync.lastSkipped) 条")
+                            Text("\(lastSync.formatted(date: .abbreviated, time: .shortened)) · 新增 \(sync.lastAccepted)")
                                 .font(.caption2)
                                 .foregroundStyle(EvilifeTheme.textTertiary)
                         }
@@ -492,10 +497,10 @@ struct HealthView: View {
                         Button {
                             healthAccessNonce += 1
                         } label: {
-                            Text("授权 HealthKit").frame(maxWidth: .infinity)
+                            Text("连接 Apple 健康").frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(.pink)
+                        .tint(EvilifeTheme.brand)
                     }
                     syncedStatsRow
                     if let error = sync.lastError ?? errorMessage.nilIfEmpty {
@@ -503,12 +508,12 @@ struct HealthView: View {
                     }
                 }
             } else {
-                Text("当前设备不支持 HealthKit。你仍可以在「今日」手动记录，或在下方导入 Apple 健康 XML。")
+                Text("此设备不支持 HealthKit")
                     .font(.footnote)
                     .foregroundStyle(EvilifeTheme.textSecondary)
             }
         } header: {
-            Text("数据同步")
+            Text("Apple 健康")
         }
     }
 
@@ -517,34 +522,10 @@ struct HealthView: View {
         let kinds = ["steps", "sleep_minutes", "resting_heart_rate", "weight_kg", "water_ml", "waist_cm"]
         let visible = kinds.filter { (syncedStats[$0] ?? 0) > 0 }
         if !visible.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    ForEach(visible, id: \.self) { kind in
-                        VStack(spacing: 1) {
-                            Text("\(syncedStats[kind] ?? 0)")
-                                .font(.caption.monospacedDigit().weight(.bold))
-                            Text(observationKindLabel(kind))
-                                .font(.caption2)
-                                .foregroundStyle(EvilifeTheme.textTertiary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 6)
-                        .background(EvilifeTheme.pageBg, in: RoundedRectangle(cornerRadius: 8))
-                    }
-                }
-                Text("已入库记录按天计数（来自 apple_healthkit 连接器，含手表与 XML 导入数据）。")
-                    .font(.caption2)
-                    .foregroundStyle(EvilifeTheme.textTertiary)
-            }
-        }
-    }
-
-    private func authorize() async {
-        do {
-            try await sync.requestAccess()
-        } catch {
-            sync.lastError = error.localizedDescription
-            await sync.refreshAccessState()
+            let total = visible.reduce(0) { $0 + (syncedStats[$1] ?? 0) }
+            Label("已同步 \(total) 条", systemImage: "checkmark.circle")
+                .font(.caption)
+                .foregroundStyle(EvilifeTheme.textTertiary)
         }
     }
 
@@ -581,11 +562,16 @@ struct HealthView: View {
 
     private var importSection: some View {
         Section {
+            Button {
+                showReports = true
+            } label: {
+                Label("体检报告", systemImage: "doc.text")
+            }
             if importing {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
                         ProgressView().controlSize(.small)
-                        Text("正在解析 Apple 健康导出文件…").font(.footnote)
+                        Text("导入中…").font(.footnote)
                     }
                     if let job = importJob, job.processed_records > 0 {
                         Text("已解析 \(job.processed_records) 条记录").font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
@@ -596,21 +582,24 @@ struct HealthView: View {
                     Label("导入完成", systemImage: "checkmark.circle.fill")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(EvilifeTheme.supported)
-                    Text("文件：\(summary.source_file)").font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
-                    Text("解析 \(summary.processed_records) 条 → 新增 \(summary.accepted) 条，跳过 \(summary.skipped) 条（按天去重）")
+                    Text("新增 \(summary.accepted) · 跳过 \(summary.skipped)")
                         .font(.footnote)
-                    if let from = summary.date_from, let to = summary.date_to {
-                        Text("数据范围：\(from) ~ \(to)").font(.caption2).foregroundStyle(EvilifeTheme.textSecondary)
+                    DisclosureGroup("详情") {
+                        Text(summary.source_file)
+                        if let from = summary.date_from, let to = summary.date_to {
+                            Text("\(from) – \(to)")
+                        }
+                        if !summary.counts.isEmpty {
+                            Text(summary.counts
+                                .sorted { $0.value > $1.value }
+                                .prefix(5)
+                                .map { "\(observationKindLabel($0.key)) \($0.value) 天" }
+                                .joined(separator: " · "))
+                        }
                     }
-                    if !summary.counts.isEmpty {
-                        Text(summary.counts
-                            .sorted { $0.value > $1.value }
-                            .prefix(5)
-                            .map { "\(observationKindLabel($0.key)) \($0.value) 天" }
-                            .joined(separator: " · "))
-                            .font(.caption2).foregroundStyle(EvilifeTheme.textSecondary)
-                    }
-                    Button("再导入一份") { showXMLImporter = true }.font(.footnote)
+                    .font(.caption2)
+                    .foregroundStyle(EvilifeTheme.textSecondary)
+                    Button("再次导入") { showXMLImporter = true }.font(.footnote)
                 }
             } else if let error = importJob?.error {
                 VStack(alignment: .leading, spacing: 6) {
@@ -621,13 +610,13 @@ struct HealthView: View {
                 Button {
                     showXMLImporter = true
                 } label: {
-                    Label("导入 Apple 健康 XML（迁移通道）", systemImage: "square.and.arrow.down.on.square")
+                    Label("导入历史数据", systemImage: "square.and.arrow.down.on.square")
                 }
             }
         } header: {
-            Text("健康数据导入")
+            Text("更多")
         } footer: {
-            Text("在 iPhone「健康」App 右上角个人头像 → 导出全部健康数据，得到 export.zip；解压出的 export.xml 在这里导入。步数/饮水/睡眠/体重/腰围/静息心率按天聚合入库，与已同步记录幂等去重。文件上限 1 GB。")
+            Text("支持 Apple 健康 export.xml，最大 1 GB。")
         }
     }
 
@@ -662,22 +651,25 @@ struct HealthView: View {
     private var profileSection: some View {
         Section {
             if analyzing {
-                HStack { Spacer(); ProgressView("正在分析健康档案…"); Spacer() }
+                HStack { Spacer(); ProgressView("分析中…"); Spacer() }
             } else if let profile {
-                Text("来源：\(profile.source == "ai" ? "AI 分析" : "确定性规则")")
-                    .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
                 ForEach(profile.cards.indices, id: \.self) { index in
                     let card = profile.cards[index]
                     VStack(alignment: .leading, spacing: 6) {
                         Text(card.title).font(.subheadline.weight(.semibold))
                         Text(card.preview).font(.footnote)
-                        ForEach(card.details, id: \.self) { detail in
-                            if let label = detail["label"], let value = detail["value"] {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(label).font(.caption2.weight(.semibold)).foregroundStyle(EvilifeTheme.textTertiary)
-                                    Text(value).font(.caption).fixedSize(horizontal: false, vertical: true)
+                        if !card.details.isEmpty {
+                            DisclosureGroup("详情") {
+                                ForEach(card.details, id: \.self) { detail in
+                                    if let label = detail["label"], let value = detail["value"] {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(label).font(.caption2.weight(.semibold)).foregroundStyle(EvilifeTheme.textTertiary)
+                                            Text(value).font(.caption).fixedSize(horizontal: false, vertical: true)
+                                        }
+                                    }
                                 }
                             }
+                            .font(.caption)
                         }
                     }
                     .padding(.vertical, 2)
@@ -688,16 +680,16 @@ struct HealthView: View {
                 } label: {
                     HStack {
                         Image(systemName: "chart.line.uptrend.xyaxis").foregroundStyle(EvilifeTheme.brand)
-                        Text("分析我的健康档案")
+                        Text("生成洞察")
                         Spacer()
                         Image(systemName: "chevron.right").font(.caption).foregroundStyle(EvilifeTheme.textTertiary)
                     }
                 }
             }
         } header: {
-            Text("健康档案分析")
+            Text("健康洞察")
         } footer: {
-            Text("基于你已记录/同步的步数、睡眠、体重、静息心率等客观数据；自由文本备注不会发送给 AI。")
+            Text("仅使用健康指标，不上传备注。")
         }
     }
 
@@ -712,83 +704,6 @@ struct HealthView: View {
         }
     }
 
-    // MARK: Connectors
-
-    private var connectorsSection: some View {
-        Section {
-            if connectors.isEmpty {
-                Text("加载中…").font(.footnote).foregroundStyle(EvilifeTheme.textTertiary)
-            }
-            ForEach(connectors) { connector in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(connector.label).font(.subheadline.weight(.medium))
-                        Spacer()
-                        statusBadge(connector.status)
-                    }
-                    Text(connector.authorization)
-                        .font(.caption).foregroundStyle(EvilifeTheme.textSecondary)
-                    if connector.id == "apple_healthkit" {
-                        HStack(spacing: 12) {
-                            if sync.isAuthorized {
-                                Button("同步 \(syncDays) 天") {
-                                    Task { await syncNow() }
-                                }
-                                .font(.caption.weight(.semibold))
-                            } else {
-                                Button("授权") {
-                                    Task { await authorize() }
-                                }
-                                .font(.caption.weight(.semibold))
-                            }
-                            Button("导入 XML") { showXMLImporter = true }
-                                .font(.caption.weight(.semibold))
-                            Spacer()
-                            let total = syncedStats.values.reduce(0, +)
-                            if total > 0 {
-                                Text("已入库 \(total) 条")
-                                    .font(.caption2)
-                                    .foregroundStyle(EvilifeTheme.textTertiary)
-                            }
-                        }
-                        .buttonStyle(.borderless)
-                    }
-                    Text("支持：\(connector.supported_kinds.map(observationKindLabel).joined(separator: "、"))")
-                        .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
-                }
-            }
-        } header: {
-            Text("数据连接器")
-        } footer: {
-            Text("Apple 健康：HealthKit 原生桥 + XML 导入双通道；Android Health Connect 与华为 Health Kit 需对应原生应用，通用导入可批量写入 JSON。")
-        }
-    }
-
-    @ViewBuilder
-    private func statusBadge(_ status: String) -> some View {
-        let (label, color): (String, Color) = {
-            switch status {
-            case "available": return ("可用", EvilifeTheme.supported)
-            case "requires_credentials": return ("需凭据", EvilifeTheme.partly)
-            default: return ("需原生桥接", EvilifeTheme.insufficient)
-            }
-        }()
-        Text(label).font(.caption2.weight(.bold))
-            .padding(.horizontal, 8).padding(.vertical, 3)
-            .background(color.opacity(0.12), in: Capsule())
-            .foregroundStyle(color)
-    }
-
-    private var disclaimerSection: some View {
-        Section {
-            Text(AppConfig.medicalDisclaimer)
-                .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
-        }
-    }
-
-    private func loadConnectors() async {
-        connectors = (try? await API.connectors()) ?? []
-    }
 }
 
 private extension String {

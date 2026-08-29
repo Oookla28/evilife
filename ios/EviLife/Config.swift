@@ -47,10 +47,13 @@ enum AppConfig {
 
     /// 启动时按顺序探测，取第一个 /api/v1/health 返回 200 的地址：
     /// 1. USB 隧道（动态发现，真机有线直连 Mac）
-    /// 2. 局域网 Wi-Fi（Mac en0 地址）
+    /// 2. 局域网候选（队友后端 172.20.10.10、本机热点网段等）
     /// 3. 回环（模拟器）
     static var probeCandidates: [String] {
         usbTunnelHostCandidates() + [
+            "http://10.43.15.30:8010",
+            "http://172.20.10.14:8010",
+            "http://172.20.10.10:8010",
             "http://172.19.55.237:8010",
             loopbackFallback,
         ]

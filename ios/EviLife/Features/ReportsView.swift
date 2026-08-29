@@ -12,14 +12,13 @@ struct ReportsView: View {
         NavigationStack {
             List {
                 uploadSection
-                if let analysis {
+                if analysis != nil {
                     analysisSection
                 }
                 historySection
-                disclaimerSection
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("体检报告")
+            .navigationTitle("报告")
             .task { await loadHistory() }
             .fileImporter(
                 isPresented: $showImporter,
@@ -38,7 +37,7 @@ struct ReportsView: View {
             } label: {
                 HStack {
                     Image(systemName: "doc.badge.plus").foregroundStyle(EvilifeTheme.brand)
-                    Text("上传体检报告（PDF / TXT / CSV / 图片）")
+                    Text("添加报告")
                     Spacer()
                     if busy { ProgressView().controlSize(.small) }
                 }
@@ -47,10 +46,8 @@ struct ReportsView: View {
             if !errorMessage.isEmpty {
                 Text(errorMessage).font(.footnote).foregroundStyle(EvilifeTheme.riskRefused)
             }
-        } header: {
-            Text("报告分析")
         } footer: {
-            Text("结构化结果只用于整理报告原文，不构成诊断或治疗建议；请逐项与原报告核对。")
+            Text("结果仅供整理，请以原报告为准。")
         }
     }
 
@@ -62,66 +59,58 @@ struct ReportsView: View {
                         .foregroundStyle(EvilifeTheme.brand)
                     Text(analysis?.file_name ?? "报告")
                         .font(.subheadline.weight(.semibold))
-                    Spacer()
-                    if let source = analysis?.source {
-                        Text(sourceLabel(source))
-                            .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
-                    }
                 }
                 if let summary = analysis?.summary {
                     Text(summary).font(.footnote).fixedSize(horizontal: false, vertical: true)
                 }
                 ForEach(analysis?.items ?? []) { item in
-                    HStack {
-                        Text(item.name).font(.footnote)
-                        Spacer()
-                        Text("\(item.value) \(item.unit)")
-                            .font(.footnote.monospacedDigit().weight(.medium))
-                        if !item.reference_range.isEmpty {
-                            Text("参考 \(item.reference_range)")
-                                .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack {
+                            Text(item.name).font(.footnote.weight(.medium))
+                            Spacer()
+                            flagBadge(item.flag)
                         }
-                        flagBadge(item.flag)
+                        HStack(spacing: 6) {
+                            Text("\(item.value) \(item.unit)")
+                                .font(.footnote.monospacedDigit())
+                            if !item.reference_range.isEmpty {
+                                Text("· \(item.reference_range)")
+                                    .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
+                            }
+                        }
                     }
                 }
                 let limitations = analysis?.limitations ?? []
                 if !limitations.isEmpty {
-                    ForEach(limitations, id: \.self) { limitation in
-                        Text("• \(limitation)")
-                            .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
+                    DisclosureGroup("注意事项 \(limitations.count)") {
+                        ForEach(limitations, id: \.self) { limitation in
+                            Text(limitation)
+                                .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
+                        }
                     }
+                    .font(.caption)
                 }
             }
         } header: {
-            Text("本次分析结果")
+            Text("结果")
         }
     }
 
     private var historySection: some View {
         Section("历史报告") {
             if history.isEmpty {
-                Text("暂无历史报告。").font(.footnote).foregroundStyle(EvilifeTheme.textTertiary)
+                Text("暂无报告").font(.footnote).foregroundStyle(EvilifeTheme.textTertiary)
             }
             ForEach(history.indices, id: \.self) { index in
                 let item = history[index]
                 VStack(alignment: .leading, spacing: 3) {
                     Text(item["file_name"]?.string ?? item["id"]?.string ?? "报告 \(index + 1)")
                         .font(.footnote.weight(.medium))
-                    if let summary = item["summary"]?.string {
-                        Text(summary).font(.caption2).foregroundStyle(EvilifeTheme.textSecondary).lineLimit(2)
-                    }
                     if let createdAt = item["created_at"]?.string {
                         Text(ISODate.localShort(createdAt)).font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
                     }
                 }
             }
-        }
-    }
-
-    private var disclaimerSection: some View {
-        Section {
-            Text(AppConfig.medicalDisclaimer)
-                .font(.caption2).foregroundStyle(EvilifeTheme.textTertiary)
         }
     }
 
@@ -139,14 +128,6 @@ struct ReportsView: View {
             .padding(.horizontal, 6).padding(.vertical, 2)
             .background(color.opacity(0.12), in: Capsule())
             .foregroundStyle(color)
-    }
-
-    private func sourceLabel(_ source: String) -> String {
-        switch source {
-        case "text_extraction": return "文本结构化"
-        case "deepseek_vl2": return "视觉模型识别"
-        default: return "受限降级"
-        }
     }
 
     private func handleImport(_ result: Result<[URL], Error>) async {

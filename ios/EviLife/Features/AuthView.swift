@@ -19,12 +19,13 @@ struct AuthView: View {
                         .keyboardType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                    SecureField("密码（至少 10 位，含字母和数字）", text: $password)
+                    SecureField("密码", text: $password)
                     if isRegister {
                         TextField("昵称", text: $displayName)
+                        Text("至少 10 位，含字母和数字")
+                            .font(.caption2)
+                            .foregroundStyle(EvilifeTheme.textTertiary)
                     }
-                } header: {
-                    Text(isRegister ? "注册 EviLife 账号" : "登录 EviLife 账号")
                 } footer: {
                     if !errorMessage.isEmpty {
                         Text(errorMessage).foregroundStyle(EvilifeTheme.riskRefused)
@@ -38,25 +39,19 @@ struct AuthView: View {
                         if busy {
                             ProgressView().frame(maxWidth: .infinity)
                         } else {
-                            Text(isRegister ? "注册并登录" : "登录").frame(maxWidth: .infinity)
+                            Text(isRegister ? "注册" : "登录").frame(maxWidth: .infinity)
                         }
                     }
                     .disabled(busy || email.isEmpty || password.isEmpty)
                 }
 
                 Section {
-                    Button("没有账号？去注册") { isRegister.toggle() }
-                    if isRegister {
-                        Button("已有账号？去登录") { isRegister = false }
+                    Button(isRegister ? "已有账号？登录" : "没有账号？注册") {
+                        isRegister.toggle()
+                        errorMessage = ""
                     }
                 }
                 .font(.footnote)
-
-                Section {
-                    Text("游客也可以使用问答与记录功能；登录后可在多设备间同步对话历史。")
-                        .font(.footnote)
-                        .foregroundStyle(EvilifeTheme.textTertiary)
-                }
             }
             .navigationTitle(isRegister ? "注册" : "登录")
             .navigationBarTitleDisplayMode(.inline)

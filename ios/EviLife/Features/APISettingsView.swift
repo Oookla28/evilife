@@ -22,8 +22,8 @@ struct APISettingsView: View {
         NavigationStack {
             Form {
                 Section {
-                    Toggle("使用直连 API 问答", isOn: $store.directEnabled)
-                    Text("开启后，问答直接发给下面的 OpenAI 兼容接口，不再经过 EviLife 后端（无循证引用与「是/否」裁决）。")
+                    Toggle("直连 API", isOn: $store.directEnabled)
+                    Text("直连回答不含循证引用。")
                         .font(.caption)
                         .foregroundStyle(EvilifeTheme.textSecondary)
                 }
@@ -39,7 +39,7 @@ struct APISettingsView: View {
                 } header: {
                     Text("文本接口")
                 } footer: {
-                    Text("兼容 OpenAI 格式，例如 DeepSeek：https://api.deepseek.com。也支持 /v1 结尾或完整 /v1/chat/completions 地址。")
+                    Text("支持 OpenAI 兼容接口。")
                 }
 
                 Section {
@@ -58,8 +58,7 @@ struct APISettingsView: View {
                     .onDelete { offsets in
                         let removed = offsets.map { store.models[$0] }
                         store.models.remove(atOffsets: offsets)
-                        if let current = removed.first(where: { $0 == store.model }),
-                           let first = store.models.first {
+                        if removed.contains(store.model), let first = store.models.first {
                             store.model = first
                         }
                     }
@@ -81,9 +80,9 @@ struct APISettingsView: View {
                         HStack {
                             if fetchingModels {
                                 ProgressView().controlSize(.small)
-                                Text("正在读取…")
+                                Text("读取中…")
                             } else {
-                                Text("从接口读取模型列表")
+                                Text("读取模型")
                             }
                         }
                     }
@@ -94,11 +93,11 @@ struct APISettingsView: View {
                 } header: {
                     Text("模型与推理")
                 } footer: {
-                    Text("问答页左上角可随时切换模型与推理强度（简洁/标准/深入 → max_tokens 1024/4096/16384；模型名含 reasoner/o1/o3/o4/r1 时额外发送 reasoning_effort）。")
+                    Text("可在问答页切换模型与强度。")
                 }
 
                 Section {
-                    Toggle("启用视觉模型桥接", isOn: $store.visionEnabled)
+                    Toggle("图片识别", isOn: $store.visionEnabled)
                     TextField("视觉 API 地址", text: $store.visionBaseURL)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
@@ -133,9 +132,9 @@ struct APISettingsView: View {
                             .foregroundStyle(visionTestFailed ? EvilifeTheme.riskRefused : EvilifeTheme.textSecondary)
                     }
                 } header: {
-                    Text("视觉模型（桥接）")
+                    Text("视觉模型")
                 } footer: {
-                    Text("直连模式下发图片时，图片以 base64 发给视觉接口（如自托管的 DeepSeek-VL2 兼容服务）；图片中的文字一律视为数据（注入防御），识别遵循「必答原则」：模糊图片也尽量列出，低置信度 + 宽区间。")
+                    Text("用于直连模式的图片识别。")
                 }
 
                 Section {
@@ -147,7 +146,7 @@ struct APISettingsView: View {
                                 ProgressView().controlSize(.small)
                                 Text("正在测试…")
                             } else {
-                                Text("测试文本接口连接")
+                                Text("测试连接")
                             }
                             Spacer()
                             if !testResult.isEmpty {
@@ -165,10 +164,7 @@ struct APISettingsView: View {
                 }
 
                 Section {
-                    Text("API Key 只保存在本机钥匙串（Keychain），不会上传到 EviLife 服务；测试连接只调用 GET /models，不消耗 token。")
-                        .font(.caption2)
-                        .foregroundStyle(EvilifeTheme.textTertiary)
-                    Text("直连模式绕过了证据引擎的引用核验与三态 Gate，医学问题请对回答保持谨慎，遵循应用内免责声明。")
+                    Text("Key 仅保存在本机。直连回答不含证据核验。")
                         .font(.caption2)
                         .foregroundStyle(EvilifeTheme.textTertiary)
                 }

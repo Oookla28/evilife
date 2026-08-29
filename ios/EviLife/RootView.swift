@@ -8,15 +8,11 @@ struct RootView: View {
             if appState.bootstrapped {
                 TabView {
                     ChatView()
-                        .tabItem { Label("问答", systemImage: "bubble.left.and.bubble.right.fill") }
+                        .tabItem { Label("问答", systemImage: "bubble.left.and.text.bubble.right") }
                     TodayView()
                         .tabItem { Label("今日", systemImage: "calendar") }
                     HealthView()
-                        .tabItem { Label("健康", systemImage: "heart.fill") }
-                    ReportsView()
-                        .tabItem { Label("报告", systemImage: "doc.text.magnifyingglass") }
-                    SettingsView()
-                        .tabItem { Label("设置", systemImage: "gearshape.fill") }
+                        .tabItem { Label("健康", systemImage: "heart") }
                 }
                 .overlay(alignment: .top) {
                     if let toast = appState.toast {
@@ -33,7 +29,7 @@ struct RootView: View {
             } else {
                 ZStack {
                     EvilifeTheme.pageBg.ignoresSafeArea()
-                    ProgressView("正在连接 EviLife…")
+                    ProgressView("连接中…")
                 }
             }
         }
