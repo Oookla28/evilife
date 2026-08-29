@@ -4,12 +4,12 @@ import Darwin
 enum AppConfig {
     /// 默认后端：本机 FastAPI。优先级：启动探测结果 > 应用内手动设置 >
     /// Info.plist 的 EvilifeAPIBaseURL > 候选列表第一条。
-    /// 8000 被本机其他进程占用，开发默认用 8010。
-    static let loopbackFallback = "http://127.0.0.1:8010"
+    /// 开发默认端口 8000（FastAPI 默认监听）。
+    static let loopbackFallback = "http://127.0.0.1:8000"
 
     /// 动态发现 CoreDevice USB 隧道：设备侧地址是 fdXX:…::1，Mac 侧是同前缀的 ::2。
     /// 隧道前缀每次重连都会变，因此不能写死，必须运行时枚举自己的 utun 接口。
-    static func usbTunnelHostCandidates(port: Int = 8010) -> [String] {
+    static func usbTunnelHostCandidates(port: Int = 8000) -> [String] {
         var candidates: [String] = []
         var ifaddrPtr: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&ifaddrPtr) == 0, let first = ifaddrPtr else { return candidates }
@@ -55,6 +55,7 @@ enum AppConfig {
             "http://172.20.10.14:8010",
             "http://172.20.10.10:8010",
             "http://172.19.55.237:8010",
+            "http://192.168.43.5:8000",
             loopbackFallback,
         ]
     }

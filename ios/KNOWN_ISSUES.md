@@ -54,7 +54,7 @@
 
 ## 六、其他环境坑
 
-- 本机 8000 端口被其他服务占用 → EviLife 后端开发环境用 **8010**（IPv4 + IPv6 双栈监听）。
+- 开发环境默认端口为 **8000**（FastAPI 默认监听）；若本机 8000 被其他服务占用，可改用其他端口并同步修改 `Config.swift` 与启动参数。
 - 后台 uvicorn 进程可能被系统回收：同步失败先 `curl /api/v1/health` 确认后端存活。
 - 手机锁屏时通过 devicectl 启动的 App 会挂起（探测不会执行）：先解锁再启动/回前台。
 - Swift 编译：`withUnsafePointer` 闭包内不能再访问被借用变量（ExclusivityViolation），先拷出 `sa_len`。

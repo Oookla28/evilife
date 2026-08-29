@@ -17,7 +17,7 @@ class Api(context: Context) {
         override fun loadForRequest(url: HttpUrl) = cookies
     }).build()
     private val moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
-    var baseUrl: String get() = prefs.getString("base_url", "http://172.20.10.10:8010")!!; set(v) = prefs.edit().putString("base_url", v.trimEnd('/')).apply()
+    var baseUrl: String get() = prefs.getString("base_url", "http://192.168.43.5:8000")!!; set(v) = prefs.edit().putString("base_url", v.trimEnd('/')).apply()
     private fun request(path: String, body: String? = null): String {
         val b = Request.Builder().url(baseUrl + path).apply { if (body != null) post(body.toRequestBody("application/json".toMediaType())) }.build()
         client.newCall(b).execute().use { r -> if (!r.isSuccessful) error("服务器返回 ${r.code}: ${r.body?.string()}"); return r.body?.string().orEmpty() }

@@ -49,7 +49,7 @@ struct SettingsView: View {
     private var serverSection: some View {
         Section("高级") {
             DisclosureGroup("服务器") {
-                TextField("服务器地址", text: $serverURL)
+                TextField("例如 http://127.0.0.1:8000", text: $serverURL)
                     .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()

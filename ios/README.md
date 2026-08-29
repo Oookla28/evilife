@@ -9,7 +9,7 @@ ios/
 │   ├── EviLifeApp.swift          # 入口
 │   ├── RootView.swift            # 5 个标签页：问答 / 今日 / 健康 / 报告 / 设置
 │   ├── AppState.swift            # 会话与登录状态（cookie 会话）
-│   ├── Config.swift              # 服务器地址配置（默认 http://127.0.0.1:8010）
+│   ├── Config.swift              # 服务器地址配置（默认 http://127.0.0.1:8000）
 │   ├── Models.swift              # 与后端契约一一对应的 Codable 模型 + JSONValue
 │   ├── APIClient.swift           # URLSession + cookie 会话 + multipart
 │   ├── SSEClient.swift           # /runs/{id}/events 的 SSE 客户端
@@ -43,10 +43,10 @@ python3 -m venv backend/.venv
 backend/.venv/bin/python -m pip install -r backend/requirements.txt
 # backend/.env 已生成；默认 EVILIFE_AUTH_REQUIRED=false（允许游客模式）
 backend/.venv/bin/python -m uvicorn app.main:app --app-dir backend \
-  --env-file backend/.env --host 127.0.0.1 --port 8010
+  --env-file backend/.env --host 127.0.0.1 --port 8000
 ```
 
-健康检查：<http://127.0.0.1:8010/api/v1/health>
+健康检查：<http://127.0.0.1:8000/api/v1/health>
 
 未配置 `DEEPSEEK_API_KEY` 时：命中预编译 Evidence Packet（钠、咖啡、睡眠、鸡蛋、地中海饮食、限时进食）走纯本地证据链；未命中主题由离线权威语料库给出 `hybrid_corpus` 双向证据回答；餐食图片识别需要独立的 `EVILIFE_VISION_*` 服务。
 
@@ -63,7 +63,7 @@ xcrun simctl launch booted com.evilife.ios
 
 或用 Xcode 直接打开 `ios/EviLife.xcodeproj` 运行。
 
-- 模拟器可直连 `http://127.0.0.1:8010`（ATS 豁免回环地址）。
+- 模拟器可直连 `http://127.0.0.1:8000`（ATS 豁免回环地址）。
 - 真机调试：在「设置 → 服务器」里改成 Mac 的局域网 IP，并把该来源加入后端
   `EVILIFE_ALLOWED_ORIGINS`（iOS 原生请求不受 CORS 限制，但建议保持一致），
   HTTP 明文需自行处理 ATS 例外；生产必须 HTTPS。

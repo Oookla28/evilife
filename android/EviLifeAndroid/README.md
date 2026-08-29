@@ -20,4 +20,4 @@
 
 APK 输出：`app/build/outputs/apk/debug/app-debug.apk`。
 
-真机测试时让手机与后端处于同一 Wi-Fi，在设置页填写例如 `http://192.168.1.20:8010`。网页打开 `/pairing-qr.html` 生成二维码，Android 健康页点击扫码绑定；随后授权 Health Connect 并同步。生产环境请使用 HTTPS，并关闭明文流量。
+真机测试时让手机与后端处于同一 Wi-Fi，在设置页填写例如 `http://192.168.1.20:8000`。网页打开 `/pairing-qr.html` 生成二维码，Android 健康页点击扫码绑定；随后授权 Health Connect 并同步。生产环境请使用 HTTPS，并关闭明文流量。
