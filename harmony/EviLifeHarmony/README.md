@@ -59,6 +59,27 @@ D:\DevEco Studio\tools\hvigor\bin\hvigorw.bat assembleHap --no-daemon
 2. `File > Project Structure > Signing Configs`，勾选自动签名（需华为开发者账号），生成签名配置。
 3. `Build > Build Hap(s)/APP(s)`，产物：`entry/build/default/outputs/default/entry-default-signed.hap`。
 
+## 签名：本地自签（仅验证） vs AGC 自动签名（真机安装）
+
+> 结论：本地自签的 CA 不在华为信任链内，Pura 70 Ultra 安装时会报证书无效并拒绝安装；真机安装必须走 AGC 自动签名。
+
+### AGC 自动签名（真机可安装）
+
+1. 在 [AppGallery Connect](https://developer.huawei.com/consumer/cn/service/josp/agc/index.html) 创建应用，包名 `com.evilife.harmony`，开通所需服务（Health Kit 等）。
+2. 用华为开发者账号登录 DevEco Studio。
+3. `File > Project Structure > Signing Configs`，勾选 **Automatically generate signature（自动生成签名）**，选择调试证书与调试 Profile（自动签名会同步登记应用 SHA-256 指纹）。
+4. `Build > Build Hap(s)/APP(s)` 重新构建，得到 `entry/build/default/outputs/default/entry-default-signed.hap`，此产物可直接 `hdc install` 到真机。
+
+### 本地自签（演示/验证用，不装真机）
+
+用 hap-sign-tool 生成自签证书链并给 HAP 打签名：
+
+- 本工具版本的 `sign-app` 参数为：`-mode localSign`、`-keyAlias`、`-keyPwd`、`-keystoreFile`、`-keystorePwd`、`-appCertFile`、`-profileFile`、`-profileSigned 1`、`-inFile`、`-outFile`、`-signAlg`、`-compatibleVersion 20`、`-signCode 1`。旧文档中的 `-privateKey`、`-keystore`、`-keystorepasswd`、`-keypasswd` 不是本版本参数名。
+- 完整可运行的签名脚本在仓库外（`Desktop\新建文件夹\sign-hap.ps1`，已填全部真实路径与密码），密码不提交到 Git。
+- `verify-app -inFile <signed.hap> -outCertChain <cert>.cer -outProfile <profile>.p7b` 输出 `Verify success` 仅代表签名块完整可验证，**不代表真机可安装**。
+
+## 真机运行与测试
+
 ## 真机运行与测试（Pura 70 Ultra / HarmonyOS 6.1）
 
 1. 手机开启「开发者模式 > USB 调试」，用 USB 连接电脑（选择「传输文件」模式）。

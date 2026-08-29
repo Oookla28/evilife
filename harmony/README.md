@@ -25,5 +25,10 @@
 
 ## 打包 HAP
 
-- 签名 HAP：用 DevEco Studio 6.0+ 打开 `harmony/EviLifeHarmony`，`File > Project Structure > Signing Configs` 完成自动签名（需华为开发者账号），然后 `Build > Build Hap(s)/APP(s)`。
+- 真机可安装的 HAP：**必须使用 AGC 自动签名**（本地自签证书不在华为信任链内，真机会拒绝安装），详细步骤见 [EviLifeHarmony/README.md](./EviLifeHarmony/README.md) 的「签名」一节。
 - 未签名 HAP（仅本地验证）：命令行方式见 [EviLifeHarmony/README.md](./EviLifeHarmony/README.md)。
+
+## 签名说明（重要）
+
+- **本地自签（演示/验证用）**：用 hap-sign-tool 生成自签证书链给 HAP 打签名，`verify-app` 可通过，但真机不信任该 CA，无法安装。完整可运行的签名脚本在仓库外（`Desktop\新建文件夹\sign-hap.ps1`），密码不提交到 Git。
+- **AGC 自动签名（真机可安装）**：在 AppGallery Connect 创建应用 `com.evilife.harmony`，用华为开发者账号登录 DevEco Studio，在 `File > Project Structure > Signing Configs` 勾选自动生成签名，重新构建后得到可安装的 `entry-default-signed.hap`。
