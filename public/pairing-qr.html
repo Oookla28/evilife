@@ -19,14 +19,23 @@
              background: #21a38f; color: #fff; font-size: 14px; cursor: pointer; }
     button:disabled { opacity: .5; cursor: wait; }
     .error { color: #c64f46; font-size: 13px; margin-top: 10px; }
+    #platforms { display: flex; gap: 8px; justify-content: center; margin: 14px 0 4px; }
+    .platform { margin-top: 0; padding: 8px 14px; font-size: 13px; border-radius: 999px;
+                background: #eef4f3; color: #1d2733; border: 1.5px solid transparent; }
+    .platform.active { background: #21a38f; color: #fff; border-color: #21a38f; }
   </style>
 </head>
 <body>
   <div class="card">
     <h1>EviLife 设备配对</h1>
-    <p>用 iPhone 上的 EviLife App：健康 → 扫码绑定网页端</p>
+    <p>选择手机平台后，用对应的 EviLife App 扫码绑定网页端</p>
+    <div id="platforms">
+      <button class="platform active" data-platform="harmony" onclick="selectPlatform('harmony')">华为 HarmonyOS</button>
+      <button class="platform" data-platform="ios" onclick="selectPlatform('ios')">iPhone iOS</button>
+    </div>
     <div id="qrcode"></div>
     <div class="code" id="code">······</div>
+    <p class="hint" id="hint">打开华为手机上的 EviLife 鸿蒙版：健康 → 扫码绑定网页端</p>
     <p class="hint" id="countdown">配对码 5 分钟内有效</p>
     <button id="refresh" onclick="load()">重新生成</button>
     <p class="error" id="error"></p>
@@ -37,6 +46,22 @@
     const API_BASE = "";
     let timer = null;
     let qr = null;
+    let currentPlatform = "harmony";
+
+    function selectPlatform(platform) {
+      currentPlatform = platform;
+      document.querySelectorAll(".platform").forEach(function (btn) {
+        btn.classList.toggle("active", btn.dataset.platform === platform);
+      });
+      const hint = document.getElementById("hint");
+      if (platform === "ios") {
+        hint.textContent = "打开 iPhone 上的 EviLife App：健康 → 扫码绑定网页端";
+      } else {
+        hint.textContent = "打开华为手机上的 EviLife 鸿蒙版：健康 → 扫码绑定网页端";
+      }
+      if (qr) qr.clear();
+      document.getElementById("code").textContent = "······";
+    }
 
     function api(path, opts = {}) {
       return fetch(API_BASE + path, { credentials: "include", ...opts });
@@ -60,6 +85,7 @@
           type: "evilife-pairing",
           base_url: API_BASE || window.location.origin,
           code: data.code,
+          platform: currentPlatform,
         });
         if (qr) qr.clear(); else qr = new QRCode(document.getElementById("qrcode"), { width: 220, height: 220 });
         qr.makeCode(payload);
