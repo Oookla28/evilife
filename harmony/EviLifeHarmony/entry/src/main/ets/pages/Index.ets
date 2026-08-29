@@ -1,4 +1,5 @@
 import { common } from '@kit.AbilityKit';
+import { BusinessError } from '@kit.BasicServicesKit';
 import { ApiClient } from '../common/ApiClient';
 import { LocalStore } from '../common/LocalStore';
 import { PairingParser, PairingPayload } from '../common/PairingParser';
@@ -215,7 +216,12 @@ struct Index {
       }
       this.status = '未识别到有效的 EviLife 配对内容';
     } catch (err) {
-      this.status = ApiClient.errorMessage(err as Error);
+      const scanError = err as BusinessError;
+      if (scanError.code === 1000500002) {
+        this.status = '已取消扫码';
+      } else {
+        this.status = ApiClient.errorMessage(err as Error);
+      }
     } finally {
       this.busy = false;
     }
@@ -369,7 +375,7 @@ struct Index {
             Column() {
               Text('循证问答')
                 .fontSize(18)
-                .fontWeight(FontWeight.SemiBold)
+                .fontWeight(FontWeight.Medium)
                 .fontColor(TEXT_COLOR)
               Text('提出健康问题，EviLife 会检索证据并给出分级回答。')
                 .fontSize(13)
@@ -428,7 +434,7 @@ struct Index {
         Column() {
           Text('扫码绑定网页账号')
             .fontSize(17)
-            .fontWeight(FontWeight.SemiBold)
+            .fontWeight(FontWeight.Medium)
             .fontColor(TEXT_COLOR)
           Text('扫描网页「健康档案」页面的配对二维码，或输入 6 位配对码，把手机绑定到该账号。')
             .fontSize(13)
@@ -479,7 +485,7 @@ struct Index {
         Column() {
           Text('华为健康数据同步')
             .fontSize(17)
-            .fontWeight(FontWeight.SemiBold)
+            .fontWeight(FontWeight.Medium)
             .fontColor(TEXT_COLOR)
           Text('通过华为 Health Kit（运动健康）授权读取步数、睡眠、心率等数据并同步到 EviLife。')
             .fontSize(13)
@@ -534,7 +540,7 @@ struct Index {
         Column() {
           Text('服务器地址')
             .fontSize(17)
-            .fontWeight(FontWeight.SemiBold)
+            .fontWeight(FontWeight.Medium)
             .fontColor(TEXT_COLOR)
           TextInput({ placeholder: 'http://192.168.1.100:8010', text: this.server })
             .onChange((value: string) => {
@@ -644,3 +650,4 @@ struct Index {
     .backgroundColor(BG_COLOR)
   }
 }
+

@@ -101,16 +101,10 @@ export class HealthSyncService {
   }
 
   /**
-   * 华为 Health Kit（运动健康服务）接入说明 —— 当前为占位实现，避免未安装 SDK 时编译失败：
-   *
-   * 1. 在 AppGallery Connect 创建应用并开通「Health Kit」服务，配置签名证书；
-   * 2. 在 entry/oh-package.json5 添加依赖（版本以 AGC 控制台最新为准）：
-   *      "@hms.health.healthService": "<最新版本>"
-   *    然后在 DevEco Terminal 执行：ohpm install
-   * 3. 按官方文档在 entry/src/main/module.json5 添加运动健康权限并申请用户授权；
-   * 4. 把读到的步数/睡眠/心率等聚合值映射为 HealthObservation，再调用 completePairing 上传。
+   * 华为 Health Kit（运动健康服务）接入说明 —— 当前为占位实现，避免未安装 SDK 时编译失败。
+   * 完整接入步骤与可用代码示例见 harmony/EviLifeHarmony/README.md「华为 Health Kit 接入」。
    */
   static healthKitStatus(): string {
-    return 'Health Kit 未配置：需在 AGC 开通服务并安装 @hms.health.healthService 依赖（见 harmony/EviLifeHarmony/README.md）';
+    return 'Health Kit 待配置：需在 AppGallery Connect 开通服务、安装 @hms.health.healthService 依赖并完成签名，详见 harmony/EviLifeHarmony/README.md';
   }
 }

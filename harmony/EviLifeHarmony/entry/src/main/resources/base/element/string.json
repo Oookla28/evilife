@@ -11,6 +11,10 @@
     {
       "name": "EntryAbility_desc",
       "value": "EviLife 主界面"
+    },
+    {
+      "name": "camera_reason",
+      "value": "用于扫描 EviLife 配对二维码，绑定账号并同步健康数据"
     }
   ]
 }

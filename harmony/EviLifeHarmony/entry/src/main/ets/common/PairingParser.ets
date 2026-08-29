@@ -73,11 +73,11 @@ export class PairingParser {
 
   private static tryParseJson(text: string): Record<string, Object> | null {
     try {
-      const parsed = JSON.parse(text);
+      const parsed = JSON.parse(text) as Record<string, Object>;
       if (parsed === null) {
         return null;
       }
-      return parsed as Record<string, Object>;
+      return parsed;
     } catch (err) {
       return null;
     }

@@ -16,11 +16,15 @@
         "name": "ohos.permission.INTERNET"
       },
       {
-        "name": "ohos.permission.CAMERA"
+        "name": "ohos.permission.CAMERA",
+        "reason": "$string:camera_reason",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "inuse"
+        }
       }
-      // 接入华为 Health Kit 后按需添加运动健康授权权限（以 AGC 控制台文档为准）：
-      // { "name": "ohos.permission.healthkit.READ" }
-      // { "name": "ohos.permission.healthkit.WRITE" }
     ],
     "abilities": [
       {

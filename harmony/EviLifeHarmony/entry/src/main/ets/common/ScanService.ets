@@ -1,17 +1,13 @@
 import { scanBarcode, scanCore } from '@kit.ScanKit';
 import { common } from '@kit.AbilityKit';
 
-/** 封装 HarmonyOS 扫码服务（Scan Kit，系统相机扫码）。 */
+/** 封装 HarmonyOS 扫码服务（Scan Kit 系统扫码页）。 */
 export class ScanService {
   static scan(context: common.UIAbilityContext): Promise<scanBarcode.ScanResult> {
     const options: scanBarcode.ScanOptions = {
-      scanTypes: [scanCore.ScanType.QR_CODE, scanCore.ScanType.BARCODE],
+      scanTypes: [scanCore.ScanType.QR_CODE, scanCore.ScanType.ONE_D_CODE],
       enableMultiMode: false,
-      enableAlbum: true,
-      enableTorch: true,
-      scanFrameColor: scanCore.Color.GREEN,
-      enableVibrate: true,
-      enableTip: '将 EviLife 配对二维码放入框内即可自动扫描'
+      enableAlbum: true
     };
     return scanBarcode.startScanForResult(context, options);
   }

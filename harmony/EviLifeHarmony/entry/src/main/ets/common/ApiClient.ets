@@ -2,10 +2,12 @@ import { http } from '@kit.NetworkKit';
 
 export class ApiError extends Error {
   readonly statusCode: number;
+  readonly detail: string;
 
   constructor(statusCode: number, message: string) {
     super(message);
     this.statusCode = statusCode;
+    this.detail = message;
   }
 }
 
@@ -103,9 +105,9 @@ export class ApiClient {
   static toRecord(result: Object | string | ArrayBuffer): Record<string, Object> {
     if (typeof result === 'string') {
       try {
-        const parsed = JSON.parse(result);
+        const parsed = JSON.parse(result) as Record<string, Object>;
         if (parsed !== null) {
-          return parsed as Record<string, Object>;
+          return parsed;
         }
       } catch (err) {
         // 非 JSON 响应，按空对象处理

@@ -1,2 +1,6 @@
-import { hapTasks } from '@ohos/hvigor-ohos-plugin';
-export default { system: hapTasks }
+import { appTasks } from '@ohos/hvigor-ohos-plugin';
+
+export default {
+  system: appTasks
+};
+

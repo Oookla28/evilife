@@ -1,4 +1,5 @@
 {
+  "modelVersion": "6.0.0",
   "name": "evilife_harmony",
   "version": "1.0.0",
   "description": "EviLife HarmonyOS 原生客户端",
