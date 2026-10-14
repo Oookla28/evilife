@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-labelledby="title description">
+  <title id="title">EviLife — Evidence for everyday life</title>
+  <desc id="description">从健康疑问，到可追溯的证据。支持与边界两条证据路径汇合为清晰的结论。</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#092c29"/><stop offset="1" stop-color="#13564b"/></linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#baf2d9" stop-opacity=".13"/><stop offset="1" stop-color="#baf2d9" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect width="1280" height="360" rx="24" fill="url(#background)"/>
+  <circle cx="1170" cy="54" r="245" fill="url(#glow)"/>
+  <circle cx="1160" cy="330" r="238" fill="none" stroke="#88cfb7" stroke-opacity=".1"/>
+  <circle cx="1160" cy="330" r="178" fill="none" stroke="#88cfb7" stroke-opacity=".1"/>
+  <path d="M64 53h36" stroke="#a5e6c7" stroke-width="4" stroke-linecap="round"/>
+  <text x="113" y="59" fill="#a5e6c7" font-family="Arial,Helvetica,sans-serif" font-size="14" font-weight="700" letter-spacing="3">EVIDENCE FOR EVERYDAY LIFE</text>
+  <text x="64" y="162" fill="#f8fff9" font-family="Arial,Helvetica,sans-serif" font-size="86" font-weight="700" letter-spacing="-3">EviLife<tspan fill="#a5e6c7">.</tspan></text>
+  <text x="68" y="216" fill="#d9eee4" font-family="Arial,'Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="28">从健康疑问，到可追溯的证据</text>
+  <g fill="#d7f6e6" fill-opacity=".1" stroke="#9cd2bb" stroke-opacity=".3">
+    <rect x="66" y="269" width="97" height="31" rx="15.5"/><rect x="175" y="269" width="97" height="31" rx="15.5"/><rect x="284" y="269" width="97" height="31" rx="15.5"/>
+  </g>
+  <g text-anchor="middle" fill="#e4f7ec" font-family="Arial,'Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="14">
+    <text x="114" y="290">双向搜证</text><text x="223" y="290">逐条引用</text><text x="332" y="290">多端互通</text>
+  </g>
+  <path d="M890 141h25q25 0 25 25v27q0 25 25 25h19M890 291h25q25 0 25-25v-23q0-25 25-25h19" fill="none" stroke="#8fd5b7" stroke-width="2.5"/>
+  <circle cx="940" cy="218" r="5" fill="#baf2d9"/>
+  <g transform="translate(705 83)">
+    <rect x="4" y="5" width="191" height="104" rx="15" fill="#041d19" opacity=".15"/>
+    <rect width="191" height="104" rx="15" fill="#f1fcf5"/>
+    <circle cx="29" cy="31" r="12" fill="#d8f0e2"/>
+    <path d="M24 31h10M29 26v10" stroke="#257354" stroke-width="2" stroke-linecap="round"/>
+    <text x="50" y="37" fill="#176247" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700">FOR</text>
+    <text x="19" y="71" fill="#526f61" font-family="Arial,'Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="16">支持主张的证据</text>
+    <path d="M19 86h93" stroke="#c7dfd1" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(705 233)">
+    <rect x="4" y="5" width="191" height="104" rx="15" fill="#041d19" opacity=".15"/>
+    <rect width="191" height="104" rx="15" fill="#fffaee"/>
+    <circle cx="29" cy="31" r="12" fill="#f5e7c8"/>
+    <path d="M24 31h10" stroke="#9a7338" stroke-width="2" stroke-linecap="round"/>
+    <text x="50" y="37" fill="#91632c" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700">AGAINST</text>
+    <text x="19" y="71" fill="#7d7058" font-family="Arial,'Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="16">反对与适用边界</text>
+    <path d="M19 86h93" stroke="#e8dcc2" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(986 163)">
+    <rect x="4" y="5" width="229" height="110" rx="15" fill="#041d19" opacity=".15"/>
+    <rect width="229" height="110" rx="15" fill="#dcf9e9"/>
+    <circle cx="30" cy="31" r="13" fill="#2f7860"/>
+    <path d="M24 31l4 4 8-8" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="53" y="37" fill="#155940" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="700">TRACEABLE</text>
+    <text x="18" y="75" fill="#366552" font-family="Arial,'Noto Sans CJK SC','Microsoft YaHei',sans-serif" font-size="17">结论 · 来源 · 不确定性</text>
+    <path d="M18 92h171" stroke="#acd7be" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>
